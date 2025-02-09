@@ -10,15 +10,24 @@ import (
 	"golang.org/x/oauth2"
 )
 
+// ReferenceType indicates whether the number refers to a PR or an Issue
+type ReferenceType int
+
+const (
+	ReferenceTypeIssue ReferenceType = iota
+	ReferenceTypePR
+)
+
 // Options contains GitHub specific options for comment retrieval
 type Options struct {
 	Token    string
 	Owner    string
 	Repo     string
-	PRNumber int
+	Number   int
+	Type     ReferenceType
 	// GitHub specific options can be added here
 	// APIEndpoint string
-	// IncludeReviewComments bool
+	// RetryCount  int
 	// etc...
 }
 
@@ -39,6 +48,9 @@ func NewProvider(opts Options) (*Provider, error) {
 	if opts.Repo == "" {
 		return nil, fmt.Errorf("repo is required")
 	}
+	if opts.Number <= 0 {
+		return nil, fmt.Errorf("number must be positive")
+	}
 
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
@@ -53,11 +65,16 @@ func NewProvider(opts Options) (*Provider, error) {
 	}, nil
 }
 
-// GetComments retrieves comments from a GitHub PR
+// GetComments retrieves comments from a GitHub Issue or PR
 func (p *Provider) GetComments(ctx context.Context) ([]interfaces.Comment, error) {
-	comments, _, err := p.client.Issues.ListComments(ctx, p.opts.Owner, p.opts.Repo, p.opts.PRNumber, nil)
+	// Both Issues and PRs use the same API endpoint in GitHub
+	comments, _, err := p.client.Issues.ListComments(ctx, p.opts.Owner, p.opts.Repo, p.opts.Number, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get PR comments: %w", err)
+		reference := "issue"
+		if p.opts.Type == ReferenceTypePR {
+			reference = "PR"
+		}
+		return nil, fmt.Errorf("failed to get %s comments: %w", reference, err)
 	}
 
 	var result []interfaces.Comment
