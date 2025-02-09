@@ -1,38 +1,25 @@
-FROM rust:1.75-slim
+FROM debian:bookworm-slim
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     curl \
-    build-essential \
-    pkg-config \
-    libssl-dev \
-    git \
-    bzip2 \
-    cmake \
-    protobuf-compiler \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
 
-# Clone Goose repository
-RUN git clone https://github.com/block/goose.git .
-
-# Initialize git submodules if any
-RUN git submodule update --init --recursive
-
-# Set environment variable for verbose Cargo output
-ENV RUST_BACKTRACE=1
-ENV CARGO_TERM_VERBOSE=true
-
-# Build Goose (with verbose output)
-RUN cargo build --release -vv
+# Download and install Goose binary
+RUN curl -fsSL https://github.com/block/goose/releases/download/stable/download_cli.sh -o install.sh \
+    && chmod +x install.sh \
+    && ./install.sh \
+    && rm install.sh
 
 # Create necessary directories for Goose
 RUN mkdir -p /root/.config/goose
 
-# Add the binary to PATH
-ENV PATH="/app/target/release:${PATH}"
+# Verify installation
+RUN goose --version
 
 # Command to run Goose
 CMD ["goose", "session"]
