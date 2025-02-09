@@ -4,6 +4,7 @@ FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y \
     curl \
     ca-certificates \
+    bzip2 \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
