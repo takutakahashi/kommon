@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/takutakahashi/kommon/pkg/github"
+	"github.com/takutakahashi/kommon/pkg/interfaces"
 )
 
 func main() {
@@ -41,10 +42,10 @@ func run() error {
 
 	// Get comments
 	ctx := context.Background()
-	comments, err := provider.GetComments(ctx, map[string]interface{}{
-		"owner":     owner,
-		"repo":      repo,
-		"pr_number": prNum,
+	comments, err := provider.GetComments(ctx, interfaces.GetCommentsOptions{
+		Owner:    owner,
+		Repo:     repo,
+		PRNumber: prNum,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to get comments: %w", err)

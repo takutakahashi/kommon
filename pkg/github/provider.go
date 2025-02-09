@@ -30,27 +30,16 @@ func NewProvider(token string) *Provider {
 }
 
 // GetComments retrieves comments from a GitHub PR
-// Required options:
-// - owner: repository owner
-// - repo: repository name
-// - pr_number: pull request number
-func (p *Provider) GetComments(ctx context.Context, opts map[string]interface{}) ([]interfaces.Comment, error) {
-	owner, ok := opts["owner"].(string)
-	if !ok {
+func (p *Provider) GetComments(ctx context.Context, opts interfaces.GetCommentsOptions) ([]interfaces.Comment, error) {
+	if opts.Owner == "" {
 		return nil, fmt.Errorf("owner is required")
 	}
 
-	repo, ok := opts["repo"].(string)
-	if !ok {
+	if opts.Repo == "" {
 		return nil, fmt.Errorf("repo is required")
 	}
 
-	prNum, ok := opts["pr_number"].(int)
-	if !ok {
-		return nil, fmt.Errorf("pr_number is required")
-	}
-
-	comments, _, err := p.client.Issues.ListComments(ctx, owner, repo, prNum, nil)
+	comments, _, err := p.client.Issues.ListComments(ctx, opts.Owner, opts.Repo, opts.PRNumber, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get PR comments: %w", err)
 	}

@@ -13,7 +13,17 @@ type Comment struct {
 // CommentProvider defines the interface for fetching comments from various sources
 type CommentProvider interface {
 	// GetComments retrieves comments based on the given options
-	GetComments(ctx context.Context, opts map[string]interface{}) ([]Comment, error)
+	GetComments(ctx context.Context, opts GetCommentsOptions) ([]Comment, error)
+}
+
+// GetCommentsOptions contains options for retrieving comments
+type GetCommentsOptions struct {
+	Owner     string
+	Repo      string
+	PRNumber  int
+	// 将来の拡張のために他のフィールドを追加可能
+	// 例: StartDate time.Time
+	// 例: MaxComments int
 }
 
 // CommentDestination defines the interface for sending comments to various destinations
