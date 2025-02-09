@@ -13,6 +13,7 @@ import (
 // Provider implements the CommentProvider interface for GitHub
 type Provider struct {
 	client *github.Client
+	opts   Options
 }
 
 // NewProvider creates a new GitHub comment provider
@@ -29,17 +30,28 @@ func NewProvider(token string) *Provider {
 	}
 }
 
+// Configure sets up the provider with GitHub specific options
+func (p *Provider) Configure(opts interface{}) error {
+	ghOpts, ok := opts.(Options)
+	if !ok {
+		return fmt.Errorf("invalid options type: expected github.Options")
+	}
+
+	if ghOpts.Owner == "" {
+		return fmt.Errorf("owner is required")
+	}
+
+	if ghOpts.Repo == "" {
+		return fmt.Errorf("repo is required")
+	}
+
+	p.opts = ghOpts
+	return nil
+}
+
 // GetComments retrieves comments from a GitHub PR
-func (p *Provider) GetComments(ctx context.Context, opts interfaces.GetCommentsOptions) ([]interfaces.Comment, error) {
-	if opts.Owner == "" {
-		return nil, fmt.Errorf("owner is required")
-	}
-
-	if opts.Repo == "" {
-		return nil, fmt.Errorf("repo is required")
-	}
-
-	comments, _, err := p.client.Issues.ListComments(ctx, opts.Owner, opts.Repo, opts.PRNumber, nil)
+func (p *Provider) GetComments(ctx context.Context) ([]interfaces.Comment, error) {
+	comments, _, err := p.client.Issues.ListComments(ctx, p.opts.Owner, p.opts.Repo, p.opts.PRNumber, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get PR comments: %w", err)
 	}

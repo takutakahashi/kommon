@@ -7,7 +7,6 @@ import (
 	"strconv"
 
 	"github.com/takutakahashi/kommon/pkg/github"
-	"github.com/takutakahashi/kommon/pkg/interfaces"
 )
 
 func main() {
@@ -37,16 +36,20 @@ func run() error {
 		return fmt.Errorf("invalid PR number: %s", os.Args[3])
 	}
 
-	// Create GitHub provider
+	// Create and configure GitHub provider
 	provider := github.NewProvider(token)
-
-	// Get comments
-	ctx := context.Background()
-	comments, err := provider.GetComments(ctx, interfaces.GetCommentsOptions{
+	err = provider.Configure(github.Options{
 		Owner:    owner,
 		Repo:     repo,
 		PRNumber: prNum,
 	})
+	if err != nil {
+		return fmt.Errorf("failed to configure provider: %w", err)
+	}
+
+	// Get comments
+	ctx := context.Background()
+	comments, err := provider.GetComments(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get comments: %w", err)
 	}
