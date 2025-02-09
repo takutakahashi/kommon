@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     git \
     bzip2 \
     cmake \
+    protobuf-compiler \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
@@ -20,8 +21,12 @@ RUN git clone https://github.com/block/goose.git .
 # Initialize git submodules if any
 RUN git submodule update --init --recursive
 
-# Build Goose
-RUN cargo build --release
+# Set environment variable for verbose Cargo output
+ENV RUST_BACKTRACE=1
+ENV CARGO_TERM_VERBOSE=true
+
+# Build Goose (with verbose output)
+RUN cargo build --release -vv
 
 # Create necessary directories for Goose
 RUN mkdir -p /root/.config/goose
