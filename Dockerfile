@@ -5,6 +5,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     ca-certificates \
     bzip2 \
+    libxcb1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
@@ -15,6 +16,9 @@ RUN curl -fsSL https://github.com/block/goose/releases/download/stable/download_
     && chmod +x install.sh \
     && ./install.sh \
     && rm install.sh
+
+# Add the local bin directory to PATH
+ENV PATH="/root/.local/bin:${PATH}"
 
 # Create necessary directories for Goose
 RUN mkdir -p /root/.config/goose
