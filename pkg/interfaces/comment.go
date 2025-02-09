@@ -14,6 +14,4 @@ type Comment struct {
 type CommentProvider interface {
 	// GetComments retrieves comments from the provider
 	GetComments(ctx context.Context) ([]Comment, error)
-	// Configure configures the provider with specific options
-	Configure(opts interface{}) error
 }

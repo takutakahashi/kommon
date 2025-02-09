@@ -10,43 +10,47 @@ import (
 	"golang.org/x/oauth2"
 )
 
+// Options contains GitHub specific options for comment retrieval
+type Options struct {
+	Token    string
+	Owner    string
+	Repo     string
+	PRNumber int
+	// GitHub specific options can be added here
+	// APIEndpoint string
+	// IncludeReviewComments bool
+	// etc...
+}
+
 // Provider implements the CommentProvider interface for GitHub
 type Provider struct {
 	client *github.Client
 	opts   Options
 }
 
-// NewProvider creates a new GitHub comment provider
-func NewProvider(token string) *Provider {
+// NewProvider creates a new GitHub comment provider with the given options
+func NewProvider(opts Options) (*Provider, error) {
+	if opts.Token == "" {
+		return nil, fmt.Errorf("token is required")
+	}
+	if opts.Owner == "" {
+		return nil, fmt.Errorf("owner is required")
+	}
+	if opts.Repo == "" {
+		return nil, fmt.Errorf("repo is required")
+	}
+
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: token},
+		&oauth2.Token{AccessToken: opts.Token},
 	)
 	tc := oauth2.NewClient(ctx, ts)
 	client := github.NewClient(tc)
 
 	return &Provider{
 		client: client,
-	}
-}
-
-// Configure sets up the provider with GitHub specific options
-func (p *Provider) Configure(opts interface{}) error {
-	ghOpts, ok := opts.(Options)
-	if !ok {
-		return fmt.Errorf("invalid options type: expected github.Options")
-	}
-
-	if ghOpts.Owner == "" {
-		return fmt.Errorf("owner is required")
-	}
-
-	if ghOpts.Repo == "" {
-		return fmt.Errorf("repo is required")
-	}
-
-	p.opts = ghOpts
-	return nil
+		opts:   opts,
+	}, nil
 }
 
 // GetComments retrieves comments from a GitHub PR

@@ -36,15 +36,15 @@ func run() error {
 		return fmt.Errorf("invalid PR number: %s", os.Args[3])
 	}
 
-	// Create and configure GitHub provider
-	provider := github.NewProvider(token)
-	err = provider.Configure(github.Options{
+	// Create GitHub provider with options
+	provider, err := github.NewProvider(github.Options{
+		Token:    token,
 		Owner:    owner,
 		Repo:     repo,
 		PRNumber: prNum,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to configure provider: %w", err)
+		return fmt.Errorf("failed to create provider: %w", err)
 	}
 
 	// Get comments
