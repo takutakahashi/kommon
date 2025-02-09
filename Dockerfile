@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     bzip2 \
     libxcb1 \
+    libdbus-1-3 \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
