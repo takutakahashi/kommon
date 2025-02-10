@@ -17,12 +17,10 @@ type Agent interface {
 
 // AgentOptions contains configuration options for creating a new agent
 type AgentOptions struct {
-	// Add any necessary configuration options here
-	Model    string            // AI model to use (for OpenAI)
 	BaseURL  string           // Base URL for API endpoint
 	APIKey   string           // API key for authentication
 	Headers  map[string]string // Additional headers
-	IssueID  string           // Issue ID for Goose agent
+	SessionID string          // Session/Issue ID
 }
 
 // NewAgent creates a new instance of an AI agent with the specified options

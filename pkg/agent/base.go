@@ -12,9 +12,6 @@ type BaseAgent struct {
 
 // NewBaseAgent creates a new instance of BaseAgent
 func NewBaseAgent(opts AgentOptions) (Agent, error) {
-	if opts.Model == "" {
-		return nil, fmt.Errorf("model is required")
-	}
 	if opts.APIKey == "" {
 		return nil, fmt.Errorf("API key is required")
 	}
