@@ -77,6 +77,5 @@ func (c *ClientHelper) GetHistory() (string, error) {
 
 // Cleanup performs cleanup operations
 func (c *ClientHelper) Cleanup() error {
-	// Add any cleanup operations here if needed
-	return nil
+	return c.agent.CloseSession(c.ctx)
 }
