@@ -1,4 +1,4 @@
-name: Build and Push Docker Image
+name: Build and Push Docker Images
 
 on:
   push:
@@ -12,7 +12,8 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ghcr.io/takutakahashi/kommon-agent
+  BASE_IMAGE_NAME: ghcr.io/takutakahashi/kommon
+  GOOSE_IMAGE_NAME: ghcr.io/takutakahashi/kommon-goose-agent
 
 jobs:
   build-and-push:
@@ -20,6 +21,13 @@ jobs:
     permissions:
       contents: read
       packages: write
+    strategy:
+      matrix:
+        include:
+          - image: ${{ env.BASE_IMAGE_NAME }}
+            dockerfile: Dockerfile
+          - image: ${{ env.GOOSE_IMAGE_NAME }}
+            dockerfile: Dockerfile.goose
 
     steps:
       - name: Checkout repository
@@ -40,7 +48,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.IMAGE_NAME }}
+          images: ${{ matrix.image }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -53,6 +61,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: ${{ matrix.dockerfile }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

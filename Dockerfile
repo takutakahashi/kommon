@@ -1,31 +1,14 @@
-FROM debian:bookworm-slim
+FROM golang:1.20-alpine AS builder
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    curl \
-    ca-certificates \
-    bzip2 \
-    libxcb1 \
-    libdbus-1-3 \
-    && rm -rf /var/lib/apt/lists/*
-
-# Set working directory
 WORKDIR /app
+COPY . .
+RUN go mod download
+RUN CGO_ENABLED=0 GOOS=linux go build -o kommon
 
-# Download and install Goose binary
-RUN curl -fsSL https://github.com/block/goose/releases/download/stable/download_cli.sh -o install.sh \
-    && chmod +x install.sh \
-    && ./install.sh \
-    && rm install.sh
+FROM alpine:latest
 
-# Add the local bin directory to PATH
-ENV PATH="/root/.local/bin:${PATH}"
+RUN apk --no-cache add ca-certificates
+WORKDIR /root/
+COPY --from=builder /app/kommon .
 
-# Create necessary directories for Goose
-RUN mkdir -p /root/.config/goose
-
-# Verify installation
-RUN goose --version
-
-# Command to run Goose
-CMD ["goose", "session"]
+ENTRYPOINT ["./kommon"]
