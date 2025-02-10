@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -52,7 +51,7 @@ func (m *Manager) StartContainer(ctx context.Context, issueID string) error {
 	}
 
 	// Start container
-	if err := m.client.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
+	if err := m.client.ContainerStart(ctx, resp.ID, container.StartOptions{}); err != nil {
 		return fmt.Errorf("failed to start container: %w", err)
 	}
 
@@ -122,13 +121,13 @@ func (m *Manager) StopContainer(ctx context.Context, issueID string) error {
 	}
 
 	// Stop container with 10s timeout
-	timeout := 10 * time.Second
+	timeout := int(10)
 	if err := m.client.ContainerStop(ctx, containerID, container.StopOptions{Timeout: &timeout}); err != nil {
 		return fmt.Errorf("failed to stop container: %w", err)
 	}
 
 	// Remove container
-	if err := m.client.ContainerRemove(ctx, containerID, types.ContainerRemoveOptions{}); err != nil {
+	if err := m.client.ContainerRemove(ctx, containerID, container.RemoveOptions{}); err != nil {
 		return fmt.Errorf("failed to remove container: %w", err)
 	}
 
