@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/takutakahashi/kommon/pkg/agent"
 	"github.com/takutakahashi/kommon/pkg/client"
@@ -15,17 +16,14 @@ import (
 func main() {
 	// コマンドライン引数の解析
 	var (
-		model   = flag.String("model", "gpt-4", "AI model to use")
-		apiKey  = flag.String("api-key", os.Getenv("KOMMON_API_KEY"), "API key for the AI service")
-		baseURL = flag.String("base-url", "", "Base URL for the AI service")
-		dataDir = flag.String("data-dir", getDefaultDataDir(), "Directory for storing session and history data")
+		agentType = flag.String("agent", "openai", "Agent type (openai or goose)")
+		model     = flag.String("model", "", "AI model to use or issue number for Goose")
+		apiKey    = flag.String("api-key", os.Getenv("KOMMON_API_KEY"), "API key for the AI service")
+		baseURL   = flag.String("base-url", "", "Base URL for the AI service")
+		dataDir   = flag.String("data-dir", getDefaultDataDir(), "Directory for storing session data")
+		text      = flag.String("text", "", "Input text for the agent")
 	)
 	flag.Parse()
-
-	// 必須パラメータのチェック
-	if *apiKey == "" {
-		log.Fatal("API key is required. Set it via -api-key flag or KOMMON_API_KEY environment variable")
-	}
 
 	// AgentOptionsの設定
 	opts := agent.AgentOptions{
@@ -34,9 +32,26 @@ func main() {
 		BaseURL: *baseURL,
 	}
 
+	// Create appropriate agent based on type
+	var newAgentFunc agent.NewAgentFunc
+	switch strings.ToLower(*agentType) {
+	case "goose":
+		newAgentFunc = agent.NewGooseAgent
+		if *model == "" {
+			log.Fatal("Issue number (model) is required for Goose agent")
+		}
+	case "openai":
+		newAgentFunc = agent.NewBaseAgent
+		if *apiKey == "" {
+			log.Fatal("API key is required for OpenAI agent")
+		}
+	default:
+		log.Fatalf("Unknown agent type: %s", *agentType)
+	}
+
 	// ClientHelperの初期化
 	ctx := context.Background()
-	helper, err := client.NewClientHelper(ctx, opts, *dataDir)
+	helper, err := client.NewClientHelper(ctx, opts, *dataDir, newAgentFunc)
 	if err != nil {
 		log.Fatalf("Failed to create client helper: %v", err)
 	}
@@ -48,13 +63,12 @@ func main() {
 	}
 
 	// 入力の処理
-	input := flag.Arg(0)
+	input := *text
 	if input == "" {
-		if history, err := helper.GetHistory(); err == nil && history != "" {
-			fmt.Println("Previous interactions:")
-			fmt.Println(history)
-		}
-		fmt.Println("Please provide input as a command line argument")
+		input = strings.Join(flag.Args(), " ")
+	}
+	if input == "" {
+		fmt.Println("Please provide input using --text flag or as command line arguments")
 		return
 	}
 
@@ -64,11 +78,8 @@ func main() {
 		log.Fatalf("Failed to execute command: %v", err)
 	}
 
-	// 結果の表示と履歴の保存
+	// 結果の表示
 	fmt.Println(output)
-	if err := helper.SaveHistory(input, output); err != nil {
-		log.Printf("Warning: Failed to save history: %v", err)
-	}
 }
 
 func getDefaultDataDir() string {
