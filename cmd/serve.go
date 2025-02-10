@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/takutakahashi/kommon/pkg/docker"
+	"github.com/takutakahashi/kommon/pkg/server"
 )
 
 var serveCmd = &cobra.Command{
@@ -20,7 +20,7 @@ The server provides a REST API to execute commands and manage containers.`,
 			image = "ghcr.io/takutakahashi/kommon-goose-agent:latest"
 		}
 
-		server, err := docker.NewServer(image)
+		server, err := server.NewServer(image)
 		if err != nil {
 			return fmt.Errorf("failed to create server: %w", err)
 		}
