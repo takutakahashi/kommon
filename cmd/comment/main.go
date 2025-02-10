@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/takutakahashi/kommon/pkg/github"
+	"github.com/takutakahashi/kommon/pkg/goose"
 )
 
 func main() {
@@ -47,8 +48,8 @@ func run() error {
 		return fmt.Errorf("invalid type: %s (must be 'issue' or 'pr')", os.Args[4])
 	}
 
-	// Create GitHub provider with options
-	provider, err := github.NewProvider(github.Options{
+	// Create Goose client for GitHub
+	client, err := goose.NewGitHubClient(goose.GitHubOptions{
 		Token:  token,
 		Owner:  owner,
 		Repo:   repo,
@@ -56,12 +57,12 @@ func run() error {
 		Type:   refType,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to create provider: %w", err)
+		return fmt.Errorf("failed to create client: %w", err)
 	}
 
 	// Get comments
 	ctx := context.Background()
-	comments, err := provider.GetComments(ctx)
+	comments, err := client.GetComments(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get comments: %w", err)
 	}
