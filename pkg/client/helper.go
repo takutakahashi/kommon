@@ -18,9 +18,9 @@ type ClientHelper struct {
 }
 
 // NewClientHelper creates a new instance of ClientHelper
-func NewClientHelper(ctx context.Context, opts agent.AgentOptions, dataDir string) (*ClientHelper, error) {
+func NewClientHelper(ctx context.Context, opts agent.AgentOptions, dataDir string, newAgentFunc agent.NewAgentFunc) (*ClientHelper, error) {
 	// Create agent instance
-	a, err := agent.NewBaseAgent(opts)
+	a, err := newAgentFunc(opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create agent: %w", err)
 	}
