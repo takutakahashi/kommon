@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/takutakahashi/kommon/pkg/agent"
 )
@@ -12,7 +11,6 @@ import (
 // ClientHelper provides helper functions for CLI client operations
 type ClientHelper struct {
 	agent    agent.Agent
-	session  string
 	dataDir  string
 	ctx      context.Context
 }
@@ -37,38 +35,13 @@ func NewClientHelper(ctx context.Context, opts agent.AgentOptions, dataDir strin
 	}, nil
 }
 
-// InitializeSession starts a new session or resumes an existing one
-func (c *ClientHelper) InitializeSession() error {
-	// Try to load existing session
-	sessionFile := fmt.Sprintf("%s/session.txt", c.dataDir)
-	if data, err := os.ReadFile(sessionFile); err == nil && len(data) > 0 {
-		sessionID := strings.TrimSpace(string(data))
-		if err := c.agent.Resume(c.ctx, sessionID); err == nil {
-			c.session = sessionID
-			return nil
-		}
-	}
-
-	// Start new session if loading failed
-	sessionID, err := c.agent.StartSession(c.ctx)
-	if err != nil {
-		return fmt.Errorf("failed to start session: %w", err)
-	}
-
-	// Save session ID
-	if err := os.WriteFile(sessionFile, []byte(sessionID), 0644); err != nil {
-		return fmt.Errorf("failed to save session ID: %w", err)
-	}
-
-	c.session = sessionID
-	return nil
+// StartSession initializes a new session
+func (c *ClientHelper) StartSession() error {
+	return c.agent.StartSession(c.ctx)
 }
 
 // Execute runs a command through the agent
 func (c *ClientHelper) Execute(input string) (string, error) {
-	if c.session == "" {
-		return "", fmt.Errorf("no active session")
-	}
 	return c.agent.Execute(c.ctx, input)
 }
 
@@ -104,6 +77,6 @@ func (c *ClientHelper) GetHistory() (string, error) {
 
 // Cleanup performs cleanup operations
 func (c *ClientHelper) Cleanup() error {
-	// Add any cleanup operations here
+	// Add any cleanup operations here if needed
 	return nil
 }

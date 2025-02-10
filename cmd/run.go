@@ -15,7 +15,7 @@ var runCmd = &cobra.Command{
 	Short: "Run a command with the specified agent",
 	Long: `Run a command using the specified AI agent.
 For example:
-  kommon run --agent goose --model issue-123 "What is the status of this project?"
+  kommon run --agent goose --issue-id 123 "What is the status of this project?"
   kommon run --agent openai --model gpt-4 "How do I implement a binary search?"`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		text, err := cmd.Flags().GetString("text")
@@ -43,9 +43,10 @@ func init() {
 func runCommand(input string) error {
 	// Create agent options from viper config
 	opts := agent.AgentOptions{
-		Model:   viper.GetString("model"),
-		APIKey:  viper.GetString("api_key"),
-		BaseURL: viper.GetString("base_url"),
+		Model:    viper.GetString("model"),
+		APIKey:   viper.GetString("api_key"),
+		BaseURL:  viper.GetString("base_url"),
+		IssueID:  viper.GetString("issue_id"),
 	}
 
 	// Select agent type
@@ -53,8 +54,8 @@ func runCommand(input string) error {
 	switch viper.GetString("agent") {
 	case "goose":
 		newAgentFunc = agent.NewGooseAgent
-		if opts.Model == "" {
-			return fmt.Errorf("issue number (model) is required for Goose agent")
+		if opts.IssueID == "" {
+			return fmt.Errorf("issue ID is required for Goose agent")
 		}
 	case "openai":
 		newAgentFunc = agent.NewBaseAgent
@@ -74,7 +75,7 @@ func runCommand(input string) error {
 	defer helper.Cleanup()
 
 	// Initialize session
-	if err := helper.InitializeSession(); err != nil {
+	if err := helper.StartSession(); err != nil {
 		return fmt.Errorf("failed to initialize session: %w", err)
 	}
 

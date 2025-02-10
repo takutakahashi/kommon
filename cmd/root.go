@@ -34,13 +34,15 @@ func init() {
 	
 	// Common flags
 	rootCmd.PersistentFlags().String("agent", "openai", "Agent type (openai or goose)")
-	rootCmd.PersistentFlags().String("model", "", "AI model to use or issue number for Goose")
+	rootCmd.PersistentFlags().String("issue-id", "", "Issue ID for Goose agent")
+	rootCmd.PersistentFlags().String("model", "", "AI model to use (for OpenAI)")
 	rootCmd.PersistentFlags().String("api-key", "", "API key for the AI service")
 	rootCmd.PersistentFlags().String("base-url", "", "Base URL for the AI service")
-	rootCmd.PersistentFlags().String("data-dir", getDefaultDataDir(), "Directory for storing session and history data")
+	rootCmd.PersistentFlags().String("data-dir", getDefaultDataDir(), "Directory for storing data")
 
 	// Bind flags to viper
 	viper.BindPFlag("agent", rootCmd.PersistentFlags().Lookup("agent"))
+	viper.BindPFlag("issue_id", rootCmd.PersistentFlags().Lookup("issue-id"))
 	viper.BindPFlag("model", rootCmd.PersistentFlags().Lookup("model"))
 	viper.BindPFlag("api_key", rootCmd.PersistentFlags().Lookup("api-key"))
 	viper.BindPFlag("base_url", rootCmd.PersistentFlags().Lookup("base-url"))
