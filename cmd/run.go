@@ -87,11 +87,8 @@ func runCommand(input string) error {
 		return fmt.Errorf("failed to execute command: %w", err)
 	}
 
-	// Display result and save history
+	// Display result
 	fmt.Println(output)
-	if err := helper.SaveHistory(input, output); err != nil {
-		fmt.Printf("Warning: Failed to save history: %v\n", err)
-	}
 
 	return nil
 }

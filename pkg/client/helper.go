@@ -45,36 +45,6 @@ func (c *ClientHelper) Execute(input string) (string, error) {
 	return c.agent.Execute(c.ctx, input)
 }
 
-// SaveHistory saves command history to a file
-func (c *ClientHelper) SaveHistory(input, output string) error {
-	historyFile := fmt.Sprintf("%s/history.txt", c.dataDir)
-	entry := fmt.Sprintf("Input: %s\nOutput: %s\n---\n", input, output)
-	
-	f, err := os.OpenFile(historyFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return fmt.Errorf("failed to open history file: %w", err)
-	}
-	defer f.Close()
-
-	if _, err := f.WriteString(entry); err != nil {
-		return fmt.Errorf("failed to write history: %w", err)
-	}
-	return nil
-}
-
-// GetHistory retrieves command history
-func (c *ClientHelper) GetHistory() (string, error) {
-	historyFile := fmt.Sprintf("%s/history.txt", c.dataDir)
-	data, err := os.ReadFile(historyFile)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return "", nil
-		}
-		return "", fmt.Errorf("failed to read history: %w", err)
-	}
-	return string(data), nil
-}
-
 // Cleanup performs cleanup operations
 func (c *ClientHelper) Cleanup() error {
 	// Add any cleanup operations here if needed

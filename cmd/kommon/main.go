@@ -20,7 +20,7 @@ func main() {
 		model     = flag.String("model", "", "AI model to use or issue number for Goose")
 		apiKey    = flag.String("api-key", os.Getenv("KOMMON_API_KEY"), "API key for the AI service")
 		baseURL   = flag.String("base-url", "", "Base URL for the AI service")
-		dataDir   = flag.String("data-dir", getDefaultDataDir(), "Directory for storing session and history data")
+		dataDir   = flag.String("data-dir", getDefaultDataDir(), "Directory for storing session data")
 		text      = flag.String("text", "", "Input text for the agent")
 	)
 	flag.Parse()
@@ -68,10 +68,6 @@ func main() {
 		input = strings.Join(flag.Args(), " ")
 	}
 	if input == "" {
-		if history, err := helper.GetHistory(); err == nil && history != "" {
-			fmt.Println("Previous interactions:")
-			fmt.Println(history)
-		}
 		fmt.Println("Please provide input using --text flag or as command line arguments")
 		return
 	}
@@ -82,11 +78,8 @@ func main() {
 		log.Fatalf("Failed to execute command: %v", err)
 	}
 
-	// 結果の表示と履歴の保存
+	// 結果の表示
 	fmt.Println(output)
-	if err := helper.SaveHistory(input, output); err != nil {
-		log.Printf("Warning: Failed to save history: %v", err)
-	}
 }
 
 func getDefaultDataDir() string {
