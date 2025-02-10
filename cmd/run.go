@@ -15,8 +15,11 @@ var runCmd = &cobra.Command{
 	Short: "Run a command with the specified agent",
 	Long: `Run a command using the specified AI agent.
 For example:
-  kommon run --agent goose --session-id 123 "What is the status of this project?"
-  kommon run --agent openai "How do I implement a binary search?"`,
+  # Use Goose agent with a specific session name
+  kommon run --agent goose --session-id 123 "Your prompt here"
+  
+  # Use OpenAI agent
+  kommon run --agent openai "Your prompt here"`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		text, err := cmd.Flags().GetString("text")
 		if err != nil {
@@ -54,7 +57,7 @@ func runCommand(input string) error {
 	case "goose":
 		newAgentFunc = agent.NewGooseAgent
 		if opts.SessionID == "" {
-			return fmt.Errorf("session ID is required for Goose agent")
+			return fmt.Errorf("session ID is required for Goose agent (used as --name parameter)")
 		}
 	case "openai":
 		newAgentFunc = agent.NewBaseAgent

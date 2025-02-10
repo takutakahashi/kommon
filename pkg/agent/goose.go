@@ -36,7 +36,7 @@ func (a *GooseAgent) Execute(ctx context.Context, input string) (string, error) 
 		return "", fmt.Errorf("input is required")
 	}
 
-	// Execute goose command
+	// Execute goose command with session ID as the --name parameter
 	cmd := exec.CommandContext(ctx, "goose", "run", "--name", a.sessionID, "--text", input)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
