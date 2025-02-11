@@ -23,6 +23,28 @@ type KubernetesExecutor struct {
 	mu        sync.RWMutex
 }
 
+type KubernetesAgent struct {
+	sessionID string
+	client    *kubernetes.Clientset
+	namespace string
+}
+
+func (a *KubernetesAgent) GetSessionID() string {
+	return a.sessionID
+}
+
+func (a *KubernetesAgent) StartSession(ctx context.Context) error {
+	// For now, just verify that the pod exists
+	_, err := a.client.CoreV1().Pods(a.namespace).Get(ctx, fmt.Sprintf("kommon-agent-%s", a.sessionID), metav1.GetOptions{})
+	return err
+}
+
+func (a *KubernetesAgent) Execute(ctx context.Context, input string) (string, error) {
+	// TODO: Implement execution logic
+	// This could involve sending commands to the pod or reading its logs
+	return "", nil
+}
+
 func NewKubernetesExecutor(opts ExecutorOptions) (Executor, error) {
 	var (
 		config *rest.Config
@@ -132,8 +154,11 @@ func (e *KubernetesExecutor) CreateAgent(ctx context.Context, opts agent.AgentOp
 
 	e.agents[opts.SessionID] = true
 
-	// TODO: Implement proper agent interface
-	return nil, nil
+	return &KubernetesAgent{
+		sessionID: opts.SessionID,
+		client:    e.client,
+		namespace: e.namespace,
+	}, nil
 }
 
 func (e *KubernetesExecutor) ListAgents(ctx context.Context) ([]string, error) {
@@ -184,8 +209,6 @@ func (e *KubernetesExecutor) GetStatus(ctx context.Context) (*ExecutorStatus, er
 		Type:         ExecutorTypeKubernetes,
 		IsReady:      true,
 		ActiveAgents: len(e.agents),
-		ResourceStatus: map[string]interface{}{
-			"namespace": e.namespace,
-		},
+		ResourceStatus: &ResourceStatus{},
 	}, nil
 }

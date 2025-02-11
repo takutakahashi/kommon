@@ -59,6 +59,7 @@ type ExecutorOptions struct {
 	Type      ExecutorType          `json:"type"`
 	ConfigDir string                `json:"config_dir"`
 	Resources *ResourceRequirements `json:"resources,omitempty"`
+	Namespace string                `json:"namespace,omitempty"`
 }
 
 // ResourceRequirements specifies resource limits and requests
