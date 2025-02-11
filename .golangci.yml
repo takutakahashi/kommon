@@ -1,23 +1,49 @@
-run:
-  timeout: 5m
-
 linters:
   enable:
     - gofmt
+    - revive        # Modern replacement for golint
     - govet
-    - staticcheck
+    - errcheck
     - gosimple
+    - staticcheck
     - ineffassign
+    - typecheck
     - unused
-    - bodyclose
-    - goimports
-    - misspell
+    - gosec        # Security checks
+    - misspell     # Spelling mistakes
+    - prealloc     # Slice preallocation suggestions
+    - gocyclo      # Cyclomatic complexity
+    - goconst      # Find repeated constants that could be constants
+    - goimports    # Checks imports formatting
 
 linters-settings:
-  goimports:
-    local-prefixes: github.com/takutakahashi/kommon
+  govet:
+    check-shadowing: true
+  revive:
+    confidence: 0.8
+  gocyclo:
+    min-complexity: 15
+  maligned:
+    suggest-new: true
+
+run:
+  timeout: 5m
+  skip-files:
+    - ".*_test\\.go$"
+  tests: false
 
 issues:
-  exclude-use-default: false
-  max-issues-per-linter: 0
+  exclude-use-default: true
   max-same-issues: 0
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - errcheck
+        - gosec
+
+# Output configuration options
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
