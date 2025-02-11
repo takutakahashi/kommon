@@ -102,7 +102,7 @@ func TestNewExecutor(t *testing.T) {
 			opts: ExecutorOptions{
 				Type: ExecutorTypeDocker,
 			},
-			wantErr: true, // Not implemented yet
+			wantErr: false, // Docker executor is now implemented
 		},
 		{
 			name: "Kubernetes executor",
