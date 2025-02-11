@@ -63,6 +63,7 @@ type ExecutorOptions struct {
 
 // ResourceRequirements specifies resource limits and requests
 type ResourceRequirements struct {
+	Image       string `json:"image,omitempty"`        // Docker image (for Docker executor)
 	CPULimit    string `json:"cpu_limit,omitempty"`    // CPU limit (e.g., "1.0")
 	MemoryLimit string `json:"memory_limit,omitempty"` // Memory limit (e.g., "1Gi")
 	DiskLimit   string `json:"disk_limit,omitempty"`   // Disk limit (e.g., "10Gi")
