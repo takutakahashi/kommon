@@ -24,7 +24,11 @@ The server provides a REST API to execute commands and manage containers.`,
 		if err != nil {
 			return fmt.Errorf("failed to create server: %w", err)
 		}
-		defer server.Close()
+		defer func() {
+			if err := server.Close(); err != nil {
+				fmt.Printf("Warning: failed to close server: %v\n", err)
+			}
+		}()
 
 		return server.Start(addr)
 	},
@@ -38,8 +42,14 @@ func init() {
 	serveCmd.Flags().Int("port", 8080, "Port to bind the server to")
 	serveCmd.Flags().String("goose-image", "", "Goose container image to use (default: ghcr.io/takutakahashi/kommon-goose-agent:latest)")
 
-	// Bind flags to viper
-	viper.BindPFlag("host", serveCmd.Flags().Lookup("host"))
-	viper.BindPFlag("port", serveCmd.Flags().Lookup("port"))
-	viper.BindPFlag("goose_image", serveCmd.Flags().Lookup("goose-image"))
+	// Bind flags to viper with error handling
+	if err := viper.BindPFlag("host", serveCmd.Flags().Lookup("host")); err != nil {
+		fmt.Printf("Warning: failed to bind host flag: %v\n", err)
+	}
+	if err := viper.BindPFlag("port", serveCmd.Flags().Lookup("port")); err != nil {
+		fmt.Printf("Warning: failed to bind port flag: %v\n", err)
+	}
+	if err := viper.BindPFlag("goose_image", serveCmd.Flags().Lookup("goose-image")); err != nil {
+		fmt.Printf("Warning: failed to bind goose_image flag: %v\n", err)
+	}
 }

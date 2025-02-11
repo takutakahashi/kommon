@@ -61,8 +61,10 @@ func init() {
 		os.Exit(1)
 	}
 
-	// Environment variables
-	viper.BindEnv("api_key", "KOMMON_API_KEY")
+	// Environment variables with error handling
+	if err := viper.BindEnv("api_key", "KOMMON_API_KEY"); err != nil {
+		fmt.Printf("Warning: failed to bind KOMMON_API_KEY environment variable: %v\n", err)
+	}
 }
 
 // initConfig reads in config file and ENV variables if set.

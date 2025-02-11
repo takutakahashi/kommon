@@ -63,7 +63,11 @@ func runCommand(input string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create client helper: %w", err)
 	}
-	defer helper.Close()
+	defer func() {
+		if err := helper.Close(); err != nil {
+			fmt.Printf("Warning: failed to close helper: %v\n", err)
+		}
+	}()
 
 	// Initialize session
 	if err := agentClient.StartSession(ctx); err != nil {
