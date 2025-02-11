@@ -40,7 +40,7 @@ jobs:
         version: v1.55.2
         skip-cache: true
         args: --timeout=5m --verbose
-        only-new-issues: true
+        only-new-issues: false
 
     - name: Build
       run: go build -v ./...
@@ -57,10 +57,3 @@ jobs:
     - name: Run Docker integration tests
       run: |
         go test -v ./... -run TestDocker
-
-    - name: Run linter
-      uses: golangci/golangci-lint-action@v4
-      with:
-        version: v1.55.2
-        skip-cache: true
-        args: --timeout=5m
