@@ -76,8 +76,6 @@ func NewExecutor(opts ExecutorOptions) (Executor, error) {
 		return NewLocalExecutor(opts)
 	case ExecutorTypeDocker:
 		return NewDockerExecutor(opts)
-	case ExecutorTypeKubernetes:
-		return NewKubernetesExecutor(opts)
 	default:
 		return nil, ErrUnsupportedExecutorType
 	}
