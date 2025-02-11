@@ -53,32 +53,32 @@ func runCommand(input string) error {
 	}
 
 	// Create agent
-	agentClient, err := agent.NewAgent(opts)
-	if err != nil {
-		return fmt.Errorf("failed to create agent: %w", err)
+	agentClient, initErr := agent.NewAgent(opts)
+	if initErr != nil {
+		return fmt.Errorf("failed to create agent: %w", initErr)
 	}
 
 	// Initialize client helper
 	ctx := context.Background()
-	helper, err := client.NewClientHelper(ctx, viper.GetString("data_dir"), agentClient)
-	if err != nil {
-		return fmt.Errorf("failed to create client helper: %w", err)
+	helper, helperErr := client.NewClientHelper(ctx, viper.GetString("data_dir"), agentClient)
+	if helperErr != nil {
+		return fmt.Errorf("failed to create client helper: %w", helperErr)
 	}
 	defer func() {
-		if err := helper.Close(); err != nil {
-			fmt.Printf("Warning: failed to close helper: %v\n", err)
+		if closeErr := helper.Close(); closeErr != nil {
+			fmt.Printf("Warning: failed to close helper: %v\n", closeErr)
 		}
 	}()
 
 	// Initialize session
-	if err := agentClient.StartSession(ctx); err != nil {
-		return fmt.Errorf("failed to start session: %w", err)
+	if sessionErr := agentClient.StartSession(ctx); sessionErr != nil {
+		return fmt.Errorf("failed to start session: %w", sessionErr)
 	}
 
 	// Execute command
-	output, err := agentClient.Execute(ctx, input)
-	if err != nil {
-		return fmt.Errorf("failed to execute command: %w", err)
+	output, execErr := agentClient.Execute(ctx, input)
+	if execErr != nil {
+		return fmt.Errorf("failed to execute command: %w", execErr)
 	}
 
 	// Display result

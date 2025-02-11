@@ -36,26 +36,26 @@ func main() {
 	}
 
 	// Create agent client
-	agentClient, err := agent.NewAgent(opts)
-	if err != nil {
-		log.Fatalf("Failed to create agent: %v", err)
+	agentClient, initErr := agent.NewAgent(opts)
+	if initErr != nil {
+		log.Fatalf("Failed to create agent: %v", initErr)
 	}
 
 	// ClientHelperの初期化
 	ctx := context.Background()
-	helper, err := client.NewClientHelper(ctx, *dataDir, agentClient)
-	if err != nil {
-		log.Fatalf("Failed to create client helper: %v", err)
+	helper, helperErr := client.NewClientHelper(ctx, *dataDir, agentClient)
+	if helperErr != nil {
+		log.Fatalf("Failed to create client helper: %v", helperErr)
 	}
 	defer func() {
-		if err := helper.Close(); err != nil {
-			log.Printf("Failed to close helper: %v", err)
+		if closeErr := helper.Close(); closeErr != nil {
+			log.Printf("Failed to close helper: %v", closeErr)
 		}
 	}()
 
 	// セッションの初期化
-	if err := agentClient.StartSession(ctx); err != nil {
-		log.Fatalf("Failed to start session: %v", err)
+	if startErr := agentClient.StartSession(ctx); startErr != nil {
+		log.Fatalf("Failed to start session: %v", startErr)
 	}
 
 	// 入力の処理
@@ -69,9 +69,9 @@ func main() {
 	}
 
 	// コマンドの実行
-	output, err := agentClient.Execute(ctx, input)
-	if err != nil {
-		log.Fatalf("Failed to execute command: %v", err)
+	output, execErr := agentClient.Execute(ctx, input)
+	if execErr != nil {
+		log.Fatalf("Failed to execute command: %v", execErr)
 	}
 
 	// 結果の表示
