@@ -25,8 +25,11 @@ type DockerExecutor struct {
 
 // NewDockerExecutor creates a new instance of DockerExecutor
 func NewDockerExecutor(opts ExecutorOptions) (*DockerExecutor, error) {
-	// Create Docker client
-	cli, err := client.NewClientWithOpts(client.FromEnv)
+	// Create Docker client with API version negotiation
+	cli, err := client.NewClientWithOpts(
+		client.FromEnv,
+		client.WithAPIVersionNegotiation(),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Docker client: %w", err)
 	}

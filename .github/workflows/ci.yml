@@ -15,6 +15,9 @@ jobs:
       docker:
         image: docker:dind
         options: --privileged
+        env:
+          DOCKER_TLS_CERTDIR: ""
+          DOCKER_HOST: tcp://0.0.0.0:2375
 
     steps:
     - uses: actions/checkout@v4
@@ -37,7 +40,9 @@ jobs:
       run: go test -v -race ./... -short
 
     - name: Build goose image for integration tests
-      run: docker build -t goose:latest -f Dockerfile.goose .
+      run: |
+        docker build -t goose:latest -f Dockerfile.goose .
+        docker images
 
     - name: Run integration tests
       run: go test -v ./... -run TestDocker
