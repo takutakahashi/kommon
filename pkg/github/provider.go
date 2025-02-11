@@ -53,7 +53,7 @@ func (p *Provider) GetComments(ctx context.Context) ([]interfaces.Comment, error
 		return nil, fmt.Errorf("failed to get %s comments: %w", p.opts.Type, err)
 	}
 
-	var result []interfaces.Comment
+	result := make([]interfaces.Comment, 0, len(comments))
 	for _, comment := range comments {
 		if comment.User == nil || comment.User.Login == nil || comment.Body == nil {
 			continue
