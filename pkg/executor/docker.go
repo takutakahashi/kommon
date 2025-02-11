@@ -203,7 +203,11 @@ func (e *DockerExecutor) GetStatus(ctx context.Context) (*ExecutorStatus, error)
 		if err != nil {
 			continue
 		}
-		defer stats.Body.Close()
+		defer func() {
+			if err := stats.Body.Close(); err != nil {
+				log.Printf("Failed to close stats body: %v", err)
+			}
+		}()
 
 		var s types.StatsJSON
 		if err := json.NewDecoder(stats.Body).Decode(&s); err != nil {

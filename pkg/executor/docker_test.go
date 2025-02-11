@@ -28,7 +28,11 @@ func TestDockerExecutor(t *testing.T) {
 	executor, err := NewDockerExecutor(opts)
 	require.NoError(t, err)
 	require.NotNil(t, executor)
-	defer executor.Close()
+	defer func() {
+		if err := executor.Close(); err != nil {
+			t.Errorf("Failed to close executor: %v", err)
+		}
+	}()
 
 	// Test initialization
 	ctx := context.Background()

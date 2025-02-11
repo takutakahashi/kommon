@@ -47,7 +47,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create client helper: %v", err)
 	}
-	defer helper.Close()
+	defer func() {
+		if err := helper.Close(); err != nil {
+			log.Printf("Failed to close helper: %v", err)
+		}
+	}()
 
 	// セッションの初期化
 	if err := agentClient.StartSession(ctx); err != nil {

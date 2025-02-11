@@ -14,7 +14,11 @@ func TestLocalExecutor(t *testing.T) {
 	// Create temporary directory for testing
 	tmpDir, err := os.MkdirTemp("", "local-executor-test-*")
 	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Errorf("Failed to remove temp dir: %v", err)
+		}
+	}()
 
 	// Create executor options
 	opts := ExecutorOptions{

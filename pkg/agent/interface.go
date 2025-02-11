@@ -20,9 +20,9 @@ type Agent interface {
 
 // AgentOptions contains configuration options for creating a new agent
 type AgentOptions struct {
-	SessionID string // Session/Issue ID
-	APIKey    string // API key for authentication
-	BaseURL   string // Base URL for API endpoint
+	SessionID string            // Session/Issue ID
+	APIKey    string            // API key for authentication
+	BaseURL   string            // Base URL for API endpoint
 	Headers   map[string]string // Additional headers
 }
 

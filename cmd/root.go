@@ -31,7 +31,7 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.kommon.yaml)")
-	
+
 	// Common flags
 	rootCmd.PersistentFlags().String("agent", "openai", "Agent type (openai or goose)")
 	rootCmd.PersistentFlags().String("session-id", "", "Session/Issue ID")
@@ -39,12 +39,27 @@ func init() {
 	rootCmd.PersistentFlags().String("base-url", "", "Base URL for the AI service")
 	rootCmd.PersistentFlags().String("data-dir", getDefaultDataDir(), "Directory for storing data")
 
-	// Bind flags to viper
-	viper.BindPFlag("agent", rootCmd.PersistentFlags().Lookup("agent"))
-	viper.BindPFlag("session_id", rootCmd.PersistentFlags().Lookup("session-id"))
-	viper.BindPFlag("api_key", rootCmd.PersistentFlags().Lookup("api-key"))
-	viper.BindPFlag("base_url", rootCmd.PersistentFlags().Lookup("base-url"))
-	viper.BindPFlag("data_dir", rootCmd.PersistentFlags().Lookup("data-dir"))
+	// Bind flags to viper with error checking
+	if err := viper.BindPFlag("agent", rootCmd.PersistentFlags().Lookup("agent")); err != nil {
+		fmt.Printf("Failed to bind agent flag: %v\n", err)
+		os.Exit(1)
+	}
+	if err := viper.BindPFlag("session_id", rootCmd.PersistentFlags().Lookup("session-id")); err != nil {
+		fmt.Printf("Failed to bind session_id flag: %v\n", err)
+		os.Exit(1)
+	}
+	if err := viper.BindPFlag("api_key", rootCmd.PersistentFlags().Lookup("api-key")); err != nil {
+		fmt.Printf("Failed to bind api_key flag: %v\n", err)
+		os.Exit(1)
+	}
+	if err := viper.BindPFlag("base_url", rootCmd.PersistentFlags().Lookup("base-url")); err != nil {
+		fmt.Printf("Failed to bind base_url flag: %v\n", err)
+		os.Exit(1)
+	}
+	if err := viper.BindPFlag("data_dir", rootCmd.PersistentFlags().Lookup("data-dir")); err != nil {
+		fmt.Printf("Failed to bind data_dir flag: %v\n", err)
+		os.Exit(1)
+	}
 
 	// Environment variables
 	viper.BindEnv("api_key", "KOMMON_API_KEY")

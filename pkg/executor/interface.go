@@ -11,8 +11,8 @@ import (
 type ExecutorType string
 
 const (
-	ExecutorTypeLocal     ExecutorType = "local"
-	ExecutorTypeDocker    ExecutorType = "docker"
+	ExecutorTypeLocal      ExecutorType = "local"
+	ExecutorTypeDocker     ExecutorType = "docker"
 	ExecutorTypeKubernetes ExecutorType = "kubernetes"
 )
 
@@ -41,10 +41,10 @@ type Executor interface {
 
 // ExecutorStatus represents the current status of an executor
 type ExecutorStatus struct {
-	Type           ExecutorType      `json:"type"`
-	IsReady        bool             `json:"is_ready"`
-	ActiveAgents   int              `json:"active_agents"`
-	ResourceStatus *ResourceStatus   `json:"resource_status,omitempty"`
+	Type           ExecutorType    `json:"type"`
+	IsReady        bool            `json:"is_ready"`
+	ActiveAgents   int             `json:"active_agents"`
+	ResourceStatus *ResourceStatus `json:"resource_status,omitempty"`
 }
 
 // ResourceStatus represents resource usage information
@@ -56,8 +56,8 @@ type ResourceStatus struct {
 
 // ExecutorOptions contains configuration options for creating a new executor
 type ExecutorOptions struct {
-	Type      ExecutorType         `json:"type"`
-	ConfigDir string              `json:"config_dir"`
+	Type      ExecutorType          `json:"type"`
+	ConfigDir string                `json:"config_dir"`
 	Resources *ResourceRequirements `json:"resources,omitempty"`
 }
 
