@@ -12,6 +12,8 @@ import (
 
 type Server struct {
 	manager *docker.Manager
+	// Webhook secret for GitHub
+	webhookSecret string
 }
 
 type ExecuteRequest struct {

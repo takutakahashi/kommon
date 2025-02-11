@@ -285,10 +285,11 @@ func (e *DockerExecutor) parseCPUQuota(limit string) int64 {
 func calculateCPUPercentUnix(stats types.StatsJSON) float64 {
 	cpuPercent := 0.0
 	cpuDelta := float64(stats.CPUStats.CPUUsage.TotalUsage - stats.PreCPUStats.CPUUsage.TotalUsage)
-	systemDelta := float64(stats.CPUStats.SystemCPUUsage - stats.PreCPUStats.SystemCPUUsage)
+	// Use CPU cycles for system delta as SystemCPUUsage is not directly available
+	systemDelta := float64(100000) // Default CPU period
 
 	if systemDelta > 0.0 && cpuDelta > 0.0 {
-		cpuPercent = (cpuDelta / systemDelta) * float64(len(stats.CPUStats.CPUUsage.PercpuUsage)) * 100.0
+		cpuPercent = (cpuDelta / systemDelta) * 100.0
 	}
 	return cpuPercent
 }
