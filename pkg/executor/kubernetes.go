@@ -206,9 +206,9 @@ func (e *KubernetesExecutor) GetStatus(ctx context.Context) (*ExecutorStatus, er
 	}
 
 	return &ExecutorStatus{
-		Type:         ExecutorTypeKubernetes,
-		IsReady:      true,
-		ActiveAgents: len(e.agents),
+		Type:           ExecutorTypeKubernetes,
+		IsReady:        true,
+		ActiveAgents:   len(e.agents),
 		ResourceStatus: &ResourceStatus{},
 	}, nil
 }
