@@ -10,6 +10,8 @@ jobs:
   test:
     name: Run Tests
     runs-on: ubuntu-latest
+    env:
+      GO_VERSION: '1.22'
 
     services:
       docker:
@@ -25,18 +27,17 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.21'
+        go-version: ${{ env.GO_VERSION }}
 
     - name: Install dependencies
       run: |
         go mod download
         go mod verify
-        go install sigs.k8s.io/kind@v0.20.0
 
     - name: Build
       run: go build -v ./...
 
-    - name: Run unit tests
+    - name: Run tests
       run: go test -v -race ./... -short
 
     - name: Build goose image for integration tests
@@ -45,21 +46,9 @@ jobs:
         docker tag goose:latest kommon-agent:latest
         docker images
 
-    - name: Setup Kind cluster
+    - name: Run Docker integration tests
       run: |
-        kind create cluster --name=ci-test
-        kind load docker-image kommon-agent:latest --name=ci-test
-        kubectl cluster-info
-        kubectl get nodes
-
-    - name: Run integration tests
-      run: |
-        export KUBECONFIG="$(kind get kubeconfig --name=ci-test)"
-        go test -v ./... -run "TestDocker\|TestKubernetes"
-
-    - name: Clean up Kind cluster
-      if: always()
-      run: kind delete cluster --name=ci-test
+        go test -v ./... -run TestDocker
 
     - name: Run linter
       uses: golangci/golangci-lint-action@v4

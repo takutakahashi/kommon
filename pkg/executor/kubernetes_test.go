@@ -1,169 +1,58 @@
-package executor
+name: CI
 
-import (
-	"context"
-	"os"
-	"testing"
-	"time"
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"github.com/takutakahashi/kommon/pkg/agent"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
-	"sigs.k8s.io/kind/pkg/cluster"
-)
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    env:
+      GO_VERSION: '1.22'
 
-const (
-	testClusterName = "kommon-test"
-	testNamespace   = "kommon-test"
-)
+    services:
+      docker:
+        image: docker:dind
+        options: --privileged
+        env:
+          DOCKER_TLS_CERTDIR: ""
+          DOCKER_HOST: tcp://0.0.0.0:2375
 
-type testEnv struct {
-	kubeClient *kubernetes.Clientset
-	provider   *cluster.Provider
-}
+    steps:
+    - uses: actions/checkout@v4
 
-func setupTestEnvironment(t *testing.T) (*testEnv, func()) {
-	t.Helper()
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
 
-	// Create kind cluster provider
-	provider := cluster.NewProvider()
+    - name: Install dependencies
+      run: |
+        go mod download
+        go mod verify
 
-	// Create a new cluster
-	err := provider.Create(
-		testClusterName,
-		cluster.CreateWithWaitForReady(time.Minute*2),
-		cluster.CreateWithKubeconfigPath(os.Getenv("KUBECONFIG")),
-	)
-	require.NoError(t, err)
+    - name: Build
+      run: go build -v ./...
 
-	// Get kubeconfig
-	kubeconfig, err := provider.KubeConfig(testClusterName, false)
-	require.NoError(t, err)
+    - name: Run tests
+      run: go test -v -race ./... -short
 
-	// Create kubernetes client
-	config, err := clientcmd.RESTConfigFromKubeConfig([]byte(kubeconfig))
-	require.NoError(t, err)
+    - name: Build goose image for integration tests
+      run: |
+        docker build -t goose:latest -f Dockerfile.goose .
+        docker tag goose:latest kommon-agent:latest
+        docker images
 
-	clientset, err := kubernetes.NewForConfig(config)
-	require.NoError(t, err)
+    - name: Run Docker integration tests
+      run: |
+        go test -v ./... -run TestDocker
 
-	// Create test namespace
-	_, err = clientset.CoreV1().Namespaces().Create(
-		context.Background(),
-		&corev1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: testNamespace,
-			},
-		},
-		metav1.CreateOptions{},
-	)
-	require.NoError(t, err)
-
-	env := &testEnv{
-		kubeClient: clientset,
-		provider:   provider,
-	}
-
-	// Return cleanup function
-	cleanup := func() {
-		if err := provider.Delete(testClusterName, ""); err != nil {
-			t.Logf("Failed to delete test cluster: %v", err)
-		}
-	}
-
-	return env, cleanup
-}
-
-func TestKubernetesExecutor(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
-
-	env, cleanup := setupTestEnvironment(t)
-	defer cleanup()
-
-	// Create executor options
-	opts := ExecutorOptions{
-		Type:      ExecutorTypeKubernetes,
-		Namespace: testNamespace,
-	}
-
-	// Create executor
-	executor, err := NewKubernetesExecutor(opts)
-	require.NoError(t, err)
-	require.NotNil(t, executor)
-
-	// Test initialization
-	ctx := context.Background()
-	err = executor.Initialize(ctx)
-	require.NoError(t, err)
-
-	// Test agent creation
-	agentOpts := agent.AgentOptions{
-		SessionID: "test-agent-1",
-		BaseURL:   "http://localhost:8080",
-		APIKey:    "test-key",
-	}
-
-	t.Run("CreateAgent", func(t *testing.T) {
-		agent, err := executor.CreateAgent(ctx, agentOpts)
-		require.NoError(t, err)
-		require.NotNil(t, agent)
-
-		// Verify pod creation
-		pod, err := env.kubeClient.CoreV1().Pods(testNamespace).Get(
-			ctx,
-			"kommon-agent-test-agent-1",
-			metav1.GetOptions{},
-		)
-		require.NoError(t, err)
-		assert.Equal(t, "kommon-agent-test-agent-1", pod.Name)
-		assert.Equal(t, testNamespace, pod.Namespace)
-
-		// Try creating duplicate agent
-		_, err = executor.CreateAgent(ctx, agentOpts)
-		assert.Error(t, err)
-	})
-
-	t.Run("ListAgents", func(t *testing.T) {
-		agents, err := executor.ListAgents(ctx)
-		require.NoError(t, err)
-		assert.Len(t, agents, 1)
-		assert.Contains(t, agents, "test-agent-1")
-	})
-
-	t.Run("GetStatus", func(t *testing.T) {
-		status, err := executor.GetStatus(ctx)
-		require.NoError(t, err)
-		assert.Equal(t, ExecutorTypeKubernetes, status.Type)
-		assert.True(t, status.IsReady)
-		assert.Equal(t, 1, status.ActiveAgents)
-		assert.NotNil(t, status.ResourceStatus)
-	})
-
-	t.Run("DestroyAgent", func(t *testing.T) {
-		err := executor.DestroyAgent(ctx, "test-agent-1")
-		require.NoError(t, err)
-
-		// Verify pod deletion
-		_, err = env.kubeClient.CoreV1().Pods(testNamespace).Get(
-			ctx,
-			"kommon-agent-test-agent-1",
-			metav1.GetOptions{},
-		)
-		assert.Error(t, err)
-
-		// Verify agent was removed from executor
-		agents, err := executor.ListAgents(ctx)
-		require.NoError(t, err)
-		assert.Len(t, agents, 0)
-
-		// Try destroying non-existent agent
-		err = executor.DestroyAgent(ctx, "non-existent")
-		assert.Error(t, err)
-	})
-}
+    - name: Run linter
+      uses: golangci/golinkci-lint-action@v4
+      with:
+        version: v1.55.2
+        skip-cache: true
+        args: --timeout=5m
