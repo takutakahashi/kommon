@@ -211,7 +211,7 @@ func (e *DockerExecutor) GetStatus(ctx context.Context) (*ExecutorStatus, error)
 			}
 		}()
 
-		var s types.StatsJSON
+		var s container.StatsResponse
 		if err := json.NewDecoder(stats.Body).Decode(&s); err != nil {
 			continue
 		}
@@ -291,7 +291,7 @@ func (e *DockerExecutor) parseCPUQuota(limit string) int64 {
 	return int64(value * 100000) // 100000 is the default period
 }
 
-func calculateCPUPercentUnix(stats types.StatsJSON) float64 {
+func calculateCPUPercentUnix(stats container.StatsResponse) float64 {
 	cpuPercent := 0.0
 	cpuDelta := float64(stats.CPUStats.CPUUsage.TotalUsage - stats.PreCPUStats.CPUUsage.TotalUsage)
 	// Use CPU cycles for system delta as SystemCPUUsage is not directly available

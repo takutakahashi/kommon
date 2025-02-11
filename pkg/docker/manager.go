@@ -68,7 +68,7 @@ func (m *Manager) ExecuteCommand(ctx context.Context, issueID string, command st
 	}
 
 	// Create exec instance
-	execConfig := types.ExecConfig{
+	execConfig := container.ExecOptions{
 		Cmd:          []string{"goose", "--name", issueID, command},
 		AttachStdout: true,
 		AttachStderr: true,
@@ -81,7 +81,7 @@ func (m *Manager) ExecuteCommand(ctx context.Context, issueID string, command st
 	}
 
 	// Start exec instance
-	resp, err := m.client.ContainerExecAttach(ctx, execIDResp.ID, types.ExecStartCheck{})
+	resp, err := m.client.ContainerExecAttach(ctx, execIDResp.ID, container.ExecStartOptions{})
 	if err != nil {
 		return "", fmt.Errorf("failed to start exec instance: %w", err)
 	}
