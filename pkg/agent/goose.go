@@ -3,45 +3,37 @@ package agent
 import (
 	"context"
 	"fmt"
-	"os/exec"
-	"strings"
 )
 
-// GooseAgent implements the Agent interface for Goose
+// GooseAgent implements the agent interface for Goose
 type GooseAgent struct {
-	sessionID string
-	options   AgentOptions
+	opts AgentOptions
 }
 
-// NewGooseAgent creates a new instance of GooseAgent
+// NewGooseAgent creates a new Goose agent
 func NewGooseAgent(opts AgentOptions) (Agent, error) {
 	if opts.SessionID == "" {
-		return nil, fmt.Errorf("session ID is required")
+		return nil, fmt.Errorf("session ID is required for Goose agent")
 	}
+
 	return &GooseAgent{
-		options:   opts,
-		sessionID: opts.SessionID,
+		opts: opts,
 	}, nil
 }
 
-// StartSession implements Agent.StartSession
+// StartSession initializes a new session with Goose
 func (a *GooseAgent) StartSession(ctx context.Context) error {
-	// Goose doesn't require explicit session initialization
+	// TODO: Implement actual Goose session initialization
 	return nil
 }
 
-// Execute implements Agent.Execute
+// Execute sends a command to Goose
 func (a *GooseAgent) Execute(ctx context.Context, input string) (string, error) {
-	if input == "" {
-		return "", fmt.Errorf("input is required")
-	}
+	// TODO: Implement actual Goose command execution
+	return fmt.Sprintf("[Goose %s] %s", a.opts.SessionID, input), nil
+}
 
-	// Execute goose command with session ID as the --name parameter
-	cmd := exec.CommandContext(ctx, "goose", "run", "--name", a.sessionID, "--text", input)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", fmt.Errorf("failed to execute goose command: %v, output: %s", err, string(output))
-	}
-
-	return strings.TrimSpace(string(output)), nil
+// GetSessionID returns the current session ID
+func (a *GooseAgent) GetSessionID() string {
+	return a.opts.SessionID
 }
