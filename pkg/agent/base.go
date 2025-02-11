@@ -5,33 +5,27 @@ import (
 	"fmt"
 )
 
-// BaseAgent provides a basic implementation of the Agent interface
+// BaseAgent implements a basic agent for testing and development
 type BaseAgent struct {
-	options AgentOptions
+	opts AgentOptions
 }
 
-// NewBaseAgent creates a new instance of BaseAgent
+// NewBaseAgent creates a new base agent
 func NewBaseAgent(opts AgentOptions) (Agent, error) {
-	if opts.APIKey == "" {
-		return nil, fmt.Errorf("API key is required")
-	}
-	return &BaseAgent{
-		options: opts,
-	}, nil
+	return &BaseAgent{opts: opts}, nil
 }
 
 // StartSession implements Agent.StartSession
 func (a *BaseAgent) StartSession(ctx context.Context) error {
-	// Add session initialization logic here if needed
 	return nil
 }
 
 // Execute implements Agent.Execute
 func (a *BaseAgent) Execute(ctx context.Context, input string) (string, error) {
-	if input == "" {
-		return "", fmt.Errorf("input is required")
-	}
-	// Here you would implement the actual execution logic
-	// This might involve calling an AI API, processing the input, etc.
-	return fmt.Sprintf("Processed input: %s", input), nil
+	return fmt.Sprintf("Executing in session %s: %s", a.opts.SessionID, input), nil
+}
+
+// GetSessionID implements Agent.GetSessionID
+func (a *BaseAgent) GetSessionID() string {
+	return a.opts.SessionID
 }

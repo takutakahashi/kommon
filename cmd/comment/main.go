@@ -36,24 +36,13 @@ func run() error {
 		return fmt.Errorf("invalid number: %s", os.Args[3])
 	}
 
-	// Parse reference type
-	var refType github.ReferenceType
-	switch os.Args[4] {
-	case "issue":
-		refType = github.ReferenceTypeIssue
-	case "pr":
-		refType = github.ReferenceTypePR
-	default:
-		return fmt.Errorf("invalid type: %s (must be 'issue' or 'pr')", os.Args[4])
-	}
-
 	// Create GitHub provider with options
-	provider, err := github.NewProvider(github.Options{
+	provider, err := github.NewProvider(&github.Options{
 		Token:  token,
 		Owner:  owner,
 		Repo:   repo,
 		Number: number,
-		Type:   refType,
+		Type:   os.Args[4], // "issue" or "pr"
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create provider: %w", err)

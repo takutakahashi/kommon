@@ -2,51 +2,44 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/takutakahashi/kommon/pkg/agent"
 )
 
-// ClientHelper provides helper functions for CLI client operations
+// ClientHelper manages agent sessions and data persistence
 type ClientHelper struct {
-	agent    agent.Agent
-	dataDir  string
-	ctx      context.Context
+	dataDir string
+	agent   agent.Agent
 }
 
-// NewClientHelper creates a new instance of ClientHelper
-func NewClientHelper(ctx context.Context, opts agent.AgentOptions, dataDir string, newAgentFunc agent.NewAgentFunc) (*ClientHelper, error) {
-	// Create agent instance
-	a, err := newAgentFunc(opts)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create agent: %w", err)
-	}
-
+// NewClientHelper creates a new ClientHelper instance
+func NewClientHelper(ctx context.Context, dataDir string, agent agent.Agent) (*ClientHelper, error) {
 	// Create data directory if it doesn't exist
 	if err := os.MkdirAll(dataDir, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create data directory: %w", err)
+		return nil, err
 	}
 
 	return &ClientHelper{
-		agent:   a,
 		dataDir: dataDir,
-		ctx:     ctx,
+		agent:   agent,
 	}, nil
 }
 
-// StartSession initializes a new session
-func (c *ClientHelper) StartSession() error {
-	return c.agent.StartSession(c.ctx)
+// GetSessionDir returns the directory for the current session
+func (h *ClientHelper) GetSessionDir() string {
+	// Assuming agent has a method to get session ID
+	if sessioner, ok := h.agent.(interface{ GetSessionID() string }); ok {
+		return filepath.Join(h.dataDir, "sessions", sessioner.GetSessionID())
+	}
+	return filepath.Join(h.dataDir, "sessions", "default")
 }
 
-// Execute runs a command through the agent
-func (c *ClientHelper) Execute(input string) (string, error) {
-	return c.agent.Execute(c.ctx, input)
-}
-
-// Cleanup performs cleanup operations
-func (c *ClientHelper) Cleanup() error {
-	// Add any cleanup operations here if needed
+// Close cleans up resources
+func (h *ClientHelper) Close() error {
+	if closer, ok := h.agent.(interface{ Close() error }); ok {
+		return closer.Close()
+	}
 	return nil
 }

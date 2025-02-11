@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
 	"github.com/takutakahashi/kommon/pkg/agent"
 	"github.com/takutakahashi/kommon/pkg/client"
 )
@@ -51,38 +52,31 @@ func runCommand(input string) error {
 		SessionID: viper.GetString("session_id"),
 	}
 
-	// Select agent type
-	var newAgentFunc agent.NewAgentFunc
-	switch viper.GetString("agent") {
-	case "goose":
-		newAgentFunc = agent.NewGooseAgent
-		if opts.SessionID == "" {
-			return fmt.Errorf("session ID is required for Goose agent (used as --name parameter)")
-		}
-	case "openai":
-		newAgentFunc = agent.NewBaseAgent
-		if opts.APIKey == "" {
-			return fmt.Errorf("API key is required for OpenAI agent")
-		}
-	default:
-		return fmt.Errorf("unknown agent type: %s", viper.GetString("agent"))
+	// Create agent
+	agentClient, err := agent.NewAgent(opts)
+	if err != nil {
+		return fmt.Errorf("failed to create agent: %w", err)
 	}
 
 	// Initialize client helper
 	ctx := context.Background()
-	helper, err := client.NewClientHelper(ctx, opts, viper.GetString("data_dir"), newAgentFunc)
+	helper, err := client.NewClientHelper(ctx, viper.GetString("data_dir"), agentClient)
 	if err != nil {
 		return fmt.Errorf("failed to create client helper: %w", err)
 	}
-	defer helper.Cleanup()
+	defer func() {
+		if err := helper.Close(); err != nil {
+			fmt.Printf("Warning: failed to close helper: %v\n", err)
+		}
+	}()
 
 	// Initialize session
-	if err := helper.StartSession(); err != nil {
-		return fmt.Errorf("failed to initialize session: %w", err)
+	if err := agentClient.StartSession(ctx); err != nil {
+		return fmt.Errorf("failed to start session: %w", err)
 	}
 
 	// Execute command
-	output, err := helper.Execute(input)
+	output, err := agentClient.Execute(ctx, input)
 	if err != nil {
 		return fmt.Errorf("failed to execute command: %w", err)
 	}

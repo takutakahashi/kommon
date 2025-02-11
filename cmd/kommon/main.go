@@ -16,8 +16,7 @@ import (
 func main() {
 	// コマンドライン引数の解析
 	var (
-		agentType = flag.String("agent", "openai", "Agent type (openai or goose)")
-		model     = flag.String("model", "", "AI model to use or issue number for Goose")
+		sessionID = flag.String("session", "", "Session ID to use")
 		apiKey    = flag.String("api-key", os.Getenv("KOMMON_API_KEY"), "API key for the AI service")
 		baseURL   = flag.String("base-url", "", "Base URL for the AI service")
 		dataDir   = flag.String("data-dir", getDefaultDataDir(), "Directory for storing session data")
@@ -25,41 +24,38 @@ func main() {
 	)
 	flag.Parse()
 
-	// AgentOptionsの設定
-	opts := agent.AgentOptions{
-		Model:   *model,
-		APIKey:  *apiKey,
-		BaseURL: *baseURL,
+	if *sessionID == "" {
+		log.Fatal("Session ID is required")
 	}
 
-	// Create appropriate agent based on type
-	var newAgentFunc agent.NewAgentFunc
-	switch strings.ToLower(*agentType) {
-	case "goose":
-		newAgentFunc = agent.NewGooseAgent
-		if *model == "" {
-			log.Fatal("Issue number (model) is required for Goose agent")
-		}
-	case "openai":
-		newAgentFunc = agent.NewBaseAgent
-		if *apiKey == "" {
-			log.Fatal("API key is required for OpenAI agent")
-		}
-	default:
-		log.Fatalf("Unknown agent type: %s", *agentType)
+	// AgentOptionsの設定
+	opts := agent.AgentOptions{
+		SessionID: *sessionID,
+		APIKey:    *apiKey,
+		BaseURL:   *baseURL,
+	}
+
+	// Create agent client
+	agentClient, err := agent.NewAgent(opts)
+	if err != nil {
+		log.Fatalf("Failed to create agent: %v", err)
 	}
 
 	// ClientHelperの初期化
 	ctx := context.Background()
-	helper, err := client.NewClientHelper(ctx, opts, *dataDir, newAgentFunc)
+	helper, err := client.NewClientHelper(ctx, *dataDir, agentClient)
 	if err != nil {
 		log.Fatalf("Failed to create client helper: %v", err)
 	}
-	defer helper.Cleanup()
+	defer func() {
+		if err := helper.Close(); err != nil {
+			log.Printf("Failed to close helper: %v", err)
+		}
+	}()
 
 	// セッションの初期化
-	if err := helper.InitializeSession(); err != nil {
-		log.Fatalf("Failed to initialize session: %v", err)
+	if err := agentClient.StartSession(ctx); err != nil {
+		log.Fatalf("Failed to start session: %v", err)
 	}
 
 	// 入力の処理
@@ -73,7 +69,7 @@ func main() {
 	}
 
 	// コマンドの実行
-	output, err := helper.Execute(input)
+	output, err := agentClient.Execute(ctx, input)
 	if err != nil {
 		log.Fatalf("Failed to execute command: %v", err)
 	}
