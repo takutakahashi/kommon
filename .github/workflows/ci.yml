@@ -31,20 +31,35 @@ jobs:
       run: |
         go mod download
         go mod verify
+        go install sigs.k8s.io/kind@v0.20.0
 
     - name: Build
       run: go build -v ./...
 
-    - name: Run tests
+    - name: Run unit tests
       run: go test -v -race ./... -short
 
     - name: Build goose image for integration tests
       run: |
         docker build -t goose:latest -f Dockerfile.goose .
+        docker tag goose:latest kommon-agent:latest
         docker images
 
+    - name: Setup Kind cluster
+      run: |
+        kind create cluster --name=ci-test
+        kind load docker-image kommon-agent:latest --name=ci-test
+        kubectl cluster-info
+        kubectl get nodes
+
     - name: Run integration tests
-      run: go test -v ./... -run TestDocker
+      run: |
+        export KUBECONFIG="$(kind get kubeconfig --name=ci-test)"
+        go test -v ./... -run "TestDocker\|TestKubernetes"
+
+    - name: Clean up Kind cluster
+      if: always()
+      run: kind delete cluster --name=ci-test
 
     - name: Run linter
       uses: golangci/golangci-lint-action@v4
