@@ -6,8 +6,9 @@ import (
 	"time"
 
 	"github.com/google/go-github/v57/github"
-	"github.com/takutakahashi/kommon/pkg/interfaces"
 	"golang.org/x/oauth2"
+
+	"github.com/takutakahashi/kommon/pkg/interfaces"
 )
 
 // Provider implements the CommentProvider interface for GitHub

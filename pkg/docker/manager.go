@@ -68,7 +68,7 @@ func (m *Manager) ExecuteCommand(ctx context.Context, issueID string, command st
 	}
 
 	// Create exec instance
-	execConfig := types.ExecConfig{
+	execConfig := container.ExecConfig{
 		Cmd:          []string{"goose", "--name", issueID, command},
 		AttachStdout: true,
 		AttachStderr: true,
