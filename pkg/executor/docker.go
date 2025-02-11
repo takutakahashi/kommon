@@ -86,7 +86,7 @@ func (e *DockerExecutor) CreateAgent(ctx context.Context, opts agent.AgentOption
 	}
 
 	// Create container
-	resp, err := e.dockerClient.ContainerCreate(
+	resp, createErr := e.dockerClient.ContainerCreate(
 		ctx,
 		containerConfig,
 		hostConfig,
@@ -94,34 +94,34 @@ func (e *DockerExecutor) CreateAgent(ctx context.Context, opts agent.AgentOption
 		nil,
 		fmt.Sprintf("kommon-agent-%s", opts.SessionID),
 	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create container: %w", err)
+	if createErr != nil {
+		return nil, fmt.Errorf("failed to create container: %w", createErr)
 	}
 
 	// Start container
-	if err := e.dockerClient.ContainerStart(ctx, resp.ID, container.StartOptions{}); err != nil {
-		return nil, fmt.Errorf("failed to start container: %w", err)
+	if startErr := e.dockerClient.ContainerStart(ctx, resp.ID, container.StartOptions{}); startErr != nil {
+		return nil, fmt.Errorf("failed to start container: %w", startErr)
 	}
 
 	e.containers[opts.SessionID] = resp.ID
 
 	// Create agent instance
-	newAgent, err := agent.NewAgent(opts)
-	if err != nil {
+	newAgent, agentErr := agent.NewAgent(opts)
+	if agentErr != nil {
 		// Cleanup container on agent creation failure
-		if err := e.DestroyAgent(ctx, opts.SessionID); err != nil {
-			return nil, fmt.Errorf("failed to create agent and cleanup failed: %w", err)
+		if cleanupErr := e.DestroyAgent(ctx, opts.SessionID); cleanupErr != nil {
+			return nil, fmt.Errorf("failed to create agent and cleanup failed: %w", agentErr)
 		}
-		return nil, fmt.Errorf("failed to create agent: %w", err)
+		return nil, fmt.Errorf("failed to create agent: %w", agentErr)
 	}
 
 	// Start agent session
-	if err := newAgent.StartSession(ctx); err != nil {
+	if sessionErr := newAgent.StartSession(ctx); sessionErr != nil {
 		// Cleanup container on session start failure
 		if cleanupErr := e.DestroyAgent(ctx, opts.SessionID); cleanupErr != nil {
-			return nil, fmt.Errorf("failed to start session and cleanup failed: %w", err)
+			return nil, fmt.Errorf("failed to start session and cleanup failed: %w", sessionErr)
 		}
-		return nil, fmt.Errorf("failed to start agent session: %w", err)
+		return nil, fmt.Errorf("failed to start agent session: %w", sessionErr)
 	}
 
 	return newAgent, nil
@@ -139,17 +139,17 @@ func (e *DockerExecutor) DestroyAgent(ctx context.Context, agentID string) error
 
 	// Stop container with timeout
 	timeout := int(10)
-	if err := e.dockerClient.ContainerStop(ctx, containerID, container.StopOptions{
+	if stopErr := e.dockerClient.ContainerStop(ctx, containerID, container.StopOptions{
 		Timeout: &timeout,
-	}); err != nil {
-		return fmt.Errorf("failed to stop container: %w", err)
+	}); stopErr != nil {
+		return fmt.Errorf("failed to stop container: %w", stopErr)
 	}
 
 	// Remove container
-	if err := e.dockerClient.ContainerRemove(ctx, containerID, container.RemoveOptions{
+	if removeErr := e.dockerClient.ContainerRemove(ctx, containerID, container.RemoveOptions{
 		Force: true,
-	}); err != nil {
-		return fmt.Errorf("failed to remove container: %w", err)
+	}); removeErr != nil {
+		return fmt.Errorf("failed to remove container: %w", removeErr)
 	}
 
 	delete(e.containers, agentID)
@@ -161,11 +161,11 @@ func (e *DockerExecutor) ListAgents(ctx context.Context) ([]string, error) {
 	e.mutex.RLock()
 	defer e.mutex.RUnlock()
 
-	containers, err := e.dockerClient.ContainerList(ctx, container.ListOptions{
+	containers, listErr := e.dockerClient.ContainerList(ctx, container.ListOptions{
 		Filters: e.buildAgentFilter(),
 	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to list containers: %w", err)
+	if listErr != nil {
+		return nil, fmt.Errorf("failed to list containers: %w", listErr)
 	}
 
 	agents := make([]string, 0, len(containers))
@@ -184,34 +184,34 @@ func (e *DockerExecutor) GetStatus(ctx context.Context) (*ExecutorStatus, error)
 	defer e.mutex.RUnlock()
 
 	// Get Docker info
-	info, err := e.dockerClient.Info(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get Docker info: %w", err)
+	info, infoErr := e.dockerClient.Info(ctx)
+	if infoErr != nil {
+		return nil, fmt.Errorf("failed to get Docker info: %w", infoErr)
 	}
 
 	// Get container stats
-	containers, err := e.dockerClient.ContainerList(ctx, container.ListOptions{
+	containers, listErr := e.dockerClient.ContainerList(ctx, container.ListOptions{
 		Filters: e.buildAgentFilter(),
 	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to list containers: %w", err)
+	if listErr != nil {
+		return nil, fmt.Errorf("failed to list containers: %w", listErr)
 	}
 
 	var totalCPU float64
 	var totalMemory float64
 	for _, c := range containers {
-		stats, err := e.dockerClient.ContainerStats(ctx, c.ID, false)
-		if err != nil {
+		stats, statsErr := e.dockerClient.ContainerStats(ctx, c.ID, false)
+		if statsErr != nil {
 			continue
 		}
 		defer func() {
-			if err := stats.Body.Close(); err != nil {
-				log.Printf("Failed to close stats body: %v", err)
+			if closeErr := stats.Body.Close(); closeErr != nil {
+				log.Printf("Failed to close stats body: %v", closeErr)
 			}
 		}()
 
 		var s container.StatsResponse
-		if err := json.NewDecoder(stats.Body).Decode(&s); err != nil {
+		if decodeErr := json.NewDecoder(stats.Body).Decode(&s); decodeErr != nil {
 			continue
 		}
 
@@ -270,8 +270,8 @@ func (e *DockerExecutor) parseMemoryLimit(limit string) int64 {
 		multiplier = 1
 	}
 
-	value, err := strconv.ParseInt(limit, 10, 64)
-	if err != nil {
+	value, parseErr := strconv.ParseInt(limit, 10, 64)
+	if parseErr != nil {
 		return 0
 	}
 	return value * multiplier
@@ -283,8 +283,8 @@ func (e *DockerExecutor) parseCPUQuota(limit string) int64 {
 	}
 	// Parse CPU limit (e.g., "1.0" -> CPU quota)
 	// Docker uses microseconds for CPU quota
-	value, err := strconv.ParseFloat(limit, 64)
-	if err != nil {
+	value, parseErr := strconv.ParseFloat(limit, 64)
+	if parseErr != nil {
 		return 0
 	}
 	return int64(value * 100000) // 100000 is the default period

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/takutakahashi/kommon/pkg/docker"
 )
@@ -35,11 +36,20 @@ func NewServer(gooseImage string) (*Server, error) {
 }
 
 func (s *Server) Start(addr string) error {
-	http.HandleFunc("/execute", s.handleExecute)
-	http.HandleFunc("/close", s.handleClose)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/execute", s.handleExecute)
+	mux.HandleFunc("/close", s.handleClose)
+
+	srv := &http.Server{
+		Addr:         addr,
+		Handler:      mux,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
 
 	log.Printf("Starting server on %s", addr)
-	return http.ListenAndServe(addr, nil)
+	return srv.ListenAndServe()
 }
 
 func (s *Server) handleExecute(w http.ResponseWriter, r *http.Request) {
