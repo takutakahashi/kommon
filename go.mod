@@ -1,6 +1,6 @@
 module github.com/takutakahashi/kommon
 
-go 1.23
+go 1.22.0
 
 require (
 	github.com/docker/docker v27.5.1+incompatible
