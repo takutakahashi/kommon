@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -27,15 +26,9 @@ type DockerExecutor struct {
 
 // NewDockerExecutor creates a new instance of DockerExecutor
 func NewDockerExecutor(opts ExecutorOptions) (*DockerExecutor, error) {
-	// Use custom Docker socket if running on macOS with Colima
-	if _, err := os.Stat("/Users/owner/.colima/default/docker.sock"); err == nil {
-		os.Setenv("DOCKER_HOST", "unix:///Users/owner/.colima/default/docker.sock")
-	}
-
 	// Create Docker client with specific API version
 	cli, err := client.NewClientWithOpts(
 		client.FromEnv,
-		client.WithVersion("1.45"),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Docker client: %w", err)
