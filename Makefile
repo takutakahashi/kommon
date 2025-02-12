@@ -1,12 +1,20 @@
-.PHONY: install_deps lint test integration-test build run docker-build
+.PHONY: install_deps lint test integration-test build run docker-build vet fmt
 
 # Go modules and golangci-lint installation
 install_deps:
 	go mod download
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 
-# Run linters
-lint: install_deps
+# Run go vet
+vet: install_deps
+	go vet ./...
+
+# Run go fmt
+fmt: install_deps
+	go fmt ./...
+
+# Run linters (includes vet and fmt check)
+lint: install_deps vet fmt
 	golangci-lint run ./...
 
 # Run unit tests
