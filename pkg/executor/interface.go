@@ -27,7 +27,7 @@ type Executor interface {
 
 	// CreateAgent creates and starts a new agent instance
 	// Returns the agent interface and any error that occurred
-	CreateAgent(ctx context.Context, opts agent.AgentOptions) (agent.Agent, error)
+	CreateAgent(ctx context.Context, opts agent.GooseOptions) (agent.Agent, error)
 
 	// DestroyAgent stops and cleans up the specified agent
 	DestroyAgent(ctx context.Context, agentID string) error

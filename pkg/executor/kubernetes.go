@@ -105,7 +105,7 @@ func (e *KubernetesExecutor) Initialize(ctx context.Context) error {
 	return nil
 }
 
-func (e *KubernetesExecutor) CreateAgent(ctx context.Context, opts agent.AgentOptions) (agent.Agent, error) {
+func (e *KubernetesExecutor) CreateAgent(ctx context.Context, opts agent.GooseOptions) (agent.Agent, error) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
@@ -132,10 +132,6 @@ func (e *KubernetesExecutor) CreateAgent(ctx context.Context, opts agent.AgentOp
 						{
 							Name:  "SESSION_ID",
 							Value: opts.SessionID,
-						},
-						{
-							Name:  "BASE_URL",
-							Value: opts.BaseURL,
 						},
 						{
 							Name:  "API_KEY",

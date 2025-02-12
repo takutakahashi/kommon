@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -13,7 +12,6 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
-
 	"github.com/takutakahashi/kommon/pkg/agent"
 )
 
@@ -27,11 +25,6 @@ type DockerExecutor struct {
 
 // NewDockerExecutor creates a new instance of DockerExecutor
 func NewDockerExecutor(opts ExecutorOptions) (*DockerExecutor, error) {
-	// Use custom Docker socket if running on macOS with Colima
-	if _, err := os.Stat("/Users/owner/.colima/default/docker.sock"); err == nil {
-		os.Setenv("DOCKER_HOST", "unix:///Users/owner/.colima/default/docker.sock")
-	}
-
 	// Create Docker client with specific API version
 	cli, err := client.NewClientWithOpts(
 		client.FromEnv,
@@ -59,7 +52,7 @@ func (e *DockerExecutor) Initialize(ctx context.Context) error {
 }
 
 // CreateAgent implements Executor.CreateAgent
-func (e *DockerExecutor) CreateAgent(ctx context.Context, opts agent.AgentOptions) (agent.Agent, error) {
+func (e *DockerExecutor) CreateAgent(ctx context.Context, opts agent.GooseOptions) (agent.Agent, error) {
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
 
@@ -73,7 +66,6 @@ func (e *DockerExecutor) CreateAgent(ctx context.Context, opts agent.AgentOption
 		Image: e.options.Resources.Image,
 		Env: []string{
 			fmt.Sprintf("AGENT_SESSION_ID=%s", opts.SessionID),
-			fmt.Sprintf("AGENT_BASE_URL=%s", opts.BaseURL),
 			fmt.Sprintf("AGENT_API_KEY=%s", opts.APIKey),
 		},
 		Labels: map[string]string{
@@ -112,22 +104,13 @@ func (e *DockerExecutor) CreateAgent(ctx context.Context, opts agent.AgentOption
 	e.containers[opts.SessionID] = resp.ID
 
 	// Create agent instance
-	newAgent, agentErr := agent.NewAgent(opts)
+	newAgent, agentErr := agent.NewGooseAgent(opts)
 	if agentErr != nil {
 		// Cleanup container on agent creation failure
 		if cleanupErr := e.DestroyAgent(ctx, opts.SessionID); cleanupErr != nil {
 			return nil, fmt.Errorf("failed to create agent and cleanup failed: %w", agentErr)
 		}
 		return nil, fmt.Errorf("failed to create agent: %w", agentErr)
-	}
-
-	// Start agent session
-	if sessionErr := newAgent.StartSession(ctx); sessionErr != nil {
-		// Cleanup container on session start failure
-		if cleanupErr := e.DestroyAgent(ctx, opts.SessionID); cleanupErr != nil {
-			return nil, fmt.Errorf("failed to start session and cleanup failed: %w", sessionErr)
-		}
-		return nil, fmt.Errorf("failed to start agent session: %w", sessionErr)
 	}
 
 	return newAgent, nil

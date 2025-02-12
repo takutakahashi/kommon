@@ -2,7 +2,6 @@ package executor
 
 import (
 	"context"
-	"os"
 	"testing"
 	"time"
 
@@ -14,11 +13,6 @@ import (
 )
 
 func setupDockerClient() (*client.Client, error) {
-	// Use custom Docker socket if running on macOS with Colima
-	if _, err := os.Stat("/Users/owner/.colima/default/docker.sock"); err == nil {
-		os.Setenv("DOCKER_HOST", "unix:///Users/owner/.colima/default/docker.sock")
-	}
-
 	return client.NewClientWithOpts(client.FromEnv, client.WithVersion("1.45"))
 }
 
@@ -82,9 +76,8 @@ func TestDockerExecutor(t *testing.T) {
 	require.NoError(t, err)
 
 	// Test agent creation
-	agentOpts := agent.AgentOptions{
+	agentOpts := agent.GooseOptions{
 		SessionID: "test-docker-agent-1",
-		BaseURL:   "http://localhost:8080",
 		APIKey:    "test-key",
 	}
 
@@ -191,9 +184,8 @@ func TestDockerExecutorIntegration(t *testing.T) {
 		require.NoError(t, err)
 		defer cli.Close()
 
-		agentOpts := agent.AgentOptions{
+		agentOpts := agent.GooseOptions{
 			SessionID: "test-lifecycle-agent",
-			BaseURL:   "http://localhost:8080",
 			APIKey:    "test-key",
 		}
 
@@ -257,9 +249,8 @@ func TestDockerExecutorIntegration(t *testing.T) {
 		err = executor.Initialize(ctx)
 		require.NoError(t, err)
 
-		agentOpts := agent.AgentOptions{
+		agentOpts := agent.GooseOptions{
 			SessionID: "test-error-agent",
-			BaseURL:   "http://localhost:8080",
 			APIKey:    "test-key",
 		}
 

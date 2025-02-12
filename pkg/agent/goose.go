@@ -3,17 +3,39 @@ package agent
 import (
 	"context"
 	"fmt"
+	"os/exec"
+)
+
+type GooseAPIType string
+
+const (
+	GooseAPITypeOpenRouter GooseAPIType = "openrouter"
 )
 
 // GooseAgent implements the agent interface for Goose
 type GooseAgent struct {
-	opts AgentOptions
+	opts GooseOptions
+}
+
+type GooseOptions struct {
+	SessionID   string
+	APIType     GooseAPIType
+	APIKey      string
+	Instruction string
 }
 
 // NewGooseAgent creates a new Goose agent
-func NewGooseAgent(opts AgentOptions) (Agent, error) {
+func NewGooseAgent(opts GooseOptions) (Agent, error) {
 	if opts.SessionID == "" {
 		return nil, fmt.Errorf("session ID is required for Goose agent")
+	}
+
+	if opts.APIType == "" {
+		opts.APIType = GooseAPITypeOpenRouter
+	}
+
+	if opts.APIKey == "" {
+		return nil, fmt.Errorf("API key is required for Goose agent")
 	}
 
 	return &GooseAgent{
@@ -21,16 +43,14 @@ func NewGooseAgent(opts AgentOptions) (Agent, error) {
 	}, nil
 }
 
-// StartSession initializes a new session with Goose
-func (a *GooseAgent) StartSession(ctx context.Context) error {
-	// TODO: Implement actual Goose session initialization
-	return nil
-}
-
 // Execute sends a command to Goose
 func (a *GooseAgent) Execute(ctx context.Context, input string) (string, error) {
-	// TODO: Implement actual Goose command execution
-	return fmt.Sprintf("[Goose %s] %s", a.opts.SessionID, input), nil
+	gooseArgs := []string{"run", "--name", a.opts.SessionID, "--text", input}
+	err := exec.CommandContext(ctx, "goose", gooseArgs...).Run()
+	if err != nil {
+		return "", err
+	}
+	return "", nil
 }
 
 // GetSessionID returns the current session ID
