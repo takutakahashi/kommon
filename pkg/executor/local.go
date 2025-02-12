@@ -166,6 +166,7 @@ func (e *LocalExecutor) Close() error {
 				errs = append(errs, fmt.Errorf("failed to close agent %s: %w", id, err))
 			}
 		}
+		delete(e.agents, id)
 	}
 
 	if len(errs) > 0 {
