@@ -30,29 +30,16 @@ jobs:
         go-version: ${{ env.GO_VERSION }}
 
     - name: Install dependencies
-      run: |
-        go mod download
-        go mod verify
+      run: make install_deps
 
     - name: Run linter
-      uses: golangci/golangci-lint-action@v4
-      with:
-        version: v1.55.2
-        skip-cache: true
-        args: --timeout=5m --verbose
-        only-new-issues: false
+      run: make lint
 
     - name: Build
-      run: go build -v ./...
+      run: make build
 
     - name: Run tests
-      run: go test -v -race ./... -short
-
-    - name: Build goose image for integration tests
-      run: |
-        docker build -t goose:latest -f Dockerfile.goose .
-        docker tag goose:latest kommon-agent:latest
-        docker images
+      run: make test
 
     - name: Run Docker integration tests
       run: |
