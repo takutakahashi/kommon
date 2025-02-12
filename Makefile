@@ -6,19 +6,19 @@ install_deps:
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 
 # Run linters
-lint:
+lint: install_deps
 	golangci-lint run ./...
 
 # Run unit tests
-test:
+test: install_deps
 	go test -v -race ./...
 
 # Run integration tests
-integration-test:
+integration-test: install_deps
 	go test -v -race -tags=integration ./...
 
 # Build the binary
-build:
+build: install_deps
 	go build -o bin/kommon .
 
 # Run the application
