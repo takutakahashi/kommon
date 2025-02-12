@@ -38,11 +38,13 @@ func init() {
 	githubCmd.Flags().Duration("shutdown-timeout", 30*time.Second, "Shutdown timeout duration")
 	githubCmd.Flags().Int64("app-id", 0, "GitHub App ID")
 	githubCmd.Flags().String("private-key-file", "", "Path to GitHub App private key file")
+	githubCmd.Flags().String("webhook-secret", "", "GitHub webhook secret for request validation")
 
 	viper.BindPFlag("github.port", githubCmd.Flags().Lookup("port"))
 	viper.BindPFlag("github.shutdown_timeout", githubCmd.Flags().Lookup("shutdown-timeout"))
 	viper.BindPFlag("github.app_id", githubCmd.Flags().Lookup("app-id"))
 	viper.BindPFlag("github.private_key_file", githubCmd.Flags().Lookup("private-key-file"))
+	viper.BindPFlag("github.webhook_secret", githubCmd.Flags().Lookup("webhook-secret"))
 
 	viper.SetDefault("github.port", "8080")
 	viper.SetDefault("github.shutdown_timeout", 30*time.Second)
