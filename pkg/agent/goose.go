@@ -45,7 +45,8 @@ func NewGooseAgent(opts GooseOptions) (Agent, error) {
 
 // Execute sends a command to Goose
 func (a *GooseAgent) Execute(ctx context.Context, input string) (string, error) {
-	err := exec.CommandContext(ctx, "goose", "run", "--name", a.opts.SessionID, "--text", input).Run()
+	gooseArgs := []string{"run", "--name", a.opts.SessionID, "--text", input}
+	err := exec.CommandContext(ctx, "goose", gooseArgs...).Run()
 	if err != nil {
 		return "", err
 	}
