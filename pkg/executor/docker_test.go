@@ -19,7 +19,7 @@ func setupDockerClient() (*client.Client, error) {
 		os.Setenv("DOCKER_HOST", "unix:///Users/owner/.colima/default/docker.sock")
 	}
 
-	return client.NewClientWithOpts(client.FromEnv, client.WithVersion("1.46"))
+	return client.NewClientWithOpts(client.FromEnv, client.WithVersion("1.45"))
 }
 
 func cleanupTestContainers(t *testing.T) {

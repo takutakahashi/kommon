@@ -35,7 +35,7 @@ func NewDockerExecutor(opts ExecutorOptions) (*DockerExecutor, error) {
 	// Create Docker client with specific API version
 	cli, err := client.NewClientWithOpts(
 		client.FromEnv,
-		client.WithVersion("1.46"),
+		client.WithVersion("1.45"),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Docker client: %w", err)
