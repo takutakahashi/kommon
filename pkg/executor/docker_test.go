@@ -2,7 +2,6 @@ package executor
 
 import (
 	"context"
-	"os"
 	"testing"
 	"time"
 
@@ -14,11 +13,6 @@ import (
 )
 
 func setupDockerClient() (*client.Client, error) {
-	// Use custom Docker socket if running on macOS with Colima
-	if _, err := os.Stat("/Users/owner/.colima/default/docker.sock"); err == nil {
-		os.Setenv("DOCKER_HOST", "unix:///Users/owner/.colima/default/docker.sock")
-	}
-
 	return client.NewClientWithOpts(client.FromEnv, client.WithVersion("1.45"))
 }
 
