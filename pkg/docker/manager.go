@@ -36,7 +36,7 @@ func (m *Manager) StartContainer(ctx context.Context, issueID string) error {
 	}
 
 	// Create container
-	resp, err := m.client.ContainerCreate(ctx,
+	resp, createErr := m.client.ContainerCreate(ctx,
 		&container.Config{
 			Image: m.image,
 			Cmd:   []string{"goose", "session"},
@@ -45,13 +45,13 @@ func (m *Manager) StartContainer(ctx context.Context, issueID string) error {
 		nil, nil, nil,
 		fmt.Sprintf("goose-%s", issueID),
 	)
-	if err != nil {
-		return fmt.Errorf("failed to create container: %w", err)
+	if createErr != nil {
+		return fmt.Errorf("failed to create container: %w", createErr)
 	}
 
 	// Start container
-	if err := m.client.ContainerStart(ctx, resp.ID, container.StartOptions{}); err != nil {
-		return fmt.Errorf("failed to start container: %w", err)
+	if startErr := m.client.ContainerStart(ctx, resp.ID, container.StartOptions{}); startErr != nil {
+		return fmt.Errorf("failed to start container: %w", startErr)
 	}
 
 	m.containers[issueID] = resp.ID
@@ -74,15 +74,15 @@ func (m *Manager) ExecuteCommand(ctx context.Context, issueID string, command st
 		Tty:          true,
 	}
 
-	execIDResp, err := m.client.ContainerExecCreate(ctx, containerID, execConfig)
-	if err != nil {
-		return "", fmt.Errorf("failed to create exec instance: %w", err)
+	execIDResp, execCreateErr := m.client.ContainerExecCreate(ctx, containerID, execConfig)
+	if execCreateErr != nil {
+		return "", fmt.Errorf("failed to create exec instance: %w", execCreateErr)
 	}
 
 	// Start exec instance
-	resp, err := m.client.ContainerExecAttach(ctx, execIDResp.ID, container.ExecStartOptions{})
-	if err != nil {
-		return "", fmt.Errorf("failed to start exec instance: %w", err)
+	resp, execStartErr := m.client.ContainerExecAttach(ctx, execIDResp.ID, container.ExecStartOptions{})
+	if execStartErr != nil {
+		return "", fmt.Errorf("failed to start exec instance: %w", execStartErr)
 	}
 	defer resp.Close()
 
@@ -90,19 +90,19 @@ func (m *Manager) ExecuteCommand(ctx context.Context, issueID string, command st
 	output := make([]byte, 0)
 	buf := make([]byte, 1024)
 	for {
-		n, err := resp.Reader.Read(buf)
+		n, readErr := resp.Reader.Read(buf)
 		if n > 0 {
 			output = append(output, buf[:n]...)
 		}
-		if err != nil {
+		if readErr != nil {
 			break
 		}
 	}
 
 	// Get exit code
-	execInspect, err := m.client.ContainerExecInspect(ctx, execIDResp.ID)
-	if err != nil {
-		return "", fmt.Errorf("failed to inspect exec instance: %w", err)
+	execInspect, inspectErr := m.client.ContainerExecInspect(ctx, execIDResp.ID)
+	if inspectErr != nil {
+		return "", fmt.Errorf("failed to inspect exec instance: %w", inspectErr)
 	}
 
 	if execInspect.ExitCode != 0 {
@@ -121,13 +121,13 @@ func (m *Manager) StopContainer(ctx context.Context, issueID string) error {
 
 	// Stop container with 10s timeout
 	timeout := int(10)
-	if err := m.client.ContainerStop(ctx, containerID, container.StopOptions{Timeout: &timeout}); err != nil {
-		return fmt.Errorf("failed to stop container: %w", err)
+	if stopErr := m.client.ContainerStop(ctx, containerID, container.StopOptions{Timeout: &timeout}); stopErr != nil {
+		return fmt.Errorf("failed to stop container: %w", stopErr)
 	}
 
 	// Remove container
-	if err := m.client.ContainerRemove(ctx, containerID, container.RemoveOptions{}); err != nil {
-		return fmt.Errorf("failed to remove container: %w", err)
+	if removeErr := m.client.ContainerRemove(ctx, containerID, container.RemoveOptions{}); removeErr != nil {
+		return fmt.Errorf("failed to remove container: %w", removeErr)
 	}
 
 	delete(m.containers, issueID)
