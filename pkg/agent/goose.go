@@ -3,9 +3,7 @@ package agent
 import (
 	"context"
 	"fmt"
-	"os"
 	"os/exec"
-	"path/filepath"
 )
 
 type GooseAPIType string
@@ -17,7 +15,6 @@ const (
 // GooseAgent implements the agent interface for Goose
 type GooseAgent struct {
 	opts GooseOptions
-	dir  string
 }
 
 type GooseOptions struct {
@@ -44,16 +41,6 @@ func NewGooseAgent(opts GooseOptions) (Agent, error) {
 	return &GooseAgent{
 		opts: opts,
 	}, nil
-}
-
-// StartSession initializes a new session with Goose
-func (a *GooseAgent) StartSession(ctx context.Context) error {
-	dir, err := os.MkdirTemp(a.dir, "goose-session-*")
-	if err != nil {
-		return err
-	}
-	os.Create(filepath.Join(dir, "goose.yaml"))
-	return nil
 }
 
 // Execute sends a command to Goose

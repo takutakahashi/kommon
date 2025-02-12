@@ -45,9 +45,8 @@ func TestLocalExecutorIntegration(t *testing.T) {
 		// 複数のエージェントを作成
 		agentIDs := []string{"agent-1", "agent-2", "agent-3"}
 		for _, id := range agentIDs {
-			agentOpts := agent.AgentOptions{
+			agentOpts := agent.GooseOptions{
 				SessionID: id,
-				BaseURL:   "http://localhost:8080",
 				APIKey:    "test-key",
 			}
 			agent, err := executor.CreateAgent(ctx, agentOpts)
@@ -85,7 +84,7 @@ func TestLocalExecutorIntegration(t *testing.T) {
 	t.Run("ResourceStatusTest", func(t *testing.T) {
 		status, err := executor.GetStatus(ctx)
 		require.NoError(t, err)
-		
+		assert.NotNil(t, status)
 		// リソース情報が取得できることを確認
 		assert.NotNil(t, status.ResourceStatus)
 		assert.GreaterOrEqual(t, status.ResourceStatus.CPUUsage, float64(0))
@@ -100,9 +99,8 @@ func TestLocalExecutorIntegration(t *testing.T) {
 		assert.Error(t, err)
 
 		// 重複するエージェントの作成
-		agentOpts := agent.AgentOptions{
+		agentOpts := agent.GooseOptions{
 			SessionID: "duplicate-agent",
-			BaseURL:   "http://localhost:8080",
 			APIKey:    "test-key",
 		}
 
@@ -142,9 +140,8 @@ func TestLocalExecutorCleanup(t *testing.T) {
 	require.NoError(t, err)
 
 	// エージェントを作成
-	agentOpts := agent.AgentOptions{
+	agentOpts := agent.GooseOptions{
 		SessionID: "cleanup-test-agent",
-		BaseURL:   "http://localhost:8080",
 		APIKey:    "test-key",
 	}
 

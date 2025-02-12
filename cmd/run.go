@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/takutakahashi/kommon/pkg/agent"
-	"github.com/takutakahashi/kommon/pkg/client"
 )
 
 var runCmd = &cobra.Command{
@@ -17,10 +16,7 @@ var runCmd = &cobra.Command{
 	Long: `Run a command using the specified AI agent.
 For example:
   # Use Goose agent with a specific session name
-  kommon run --agent goose --session-id 123 "Your prompt here"
-  
-  # Use OpenAI agent
-  kommon run --agent openai "Your prompt here"`,
+  kommon run --agent goose --session-id 123 "Your prompt here"`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		text, err := cmd.Flags().GetString("text")
 		if err != nil {
@@ -45,34 +41,19 @@ func init() {
 }
 
 func runCommand(input string) error {
+	ctx := context.Background()
+
 	// Create agent options from viper config
-	opts := agent.AgentOptions{
-		APIKey:    viper.GetString("api_key"),
-		BaseURL:   viper.GetString("base_url"),
-		SessionID: viper.GetString("session_id"),
+	opts := agent.GooseOptions{
+		APIKey:      viper.GetString("api_key"),
+		SessionID:   viper.GetString("session_id"),
+		Instruction: input,
 	}
 
 	// Create agent
-	agentClient, initErr := agent.NewAgent(opts)
+	agentClient, initErr := agent.NewGooseAgent(opts)
 	if initErr != nil {
 		return fmt.Errorf("failed to create agent: %w", initErr)
-	}
-
-	// Initialize client helper
-	ctx := context.Background()
-	helper, helperErr := client.NewClientHelper(ctx, viper.GetString("data_dir"), agentClient)
-	if helperErr != nil {
-		return fmt.Errorf("failed to create client helper: %w", helperErr)
-	}
-	defer func() {
-		if closeErr := helper.Close(); closeErr != nil {
-			fmt.Printf("Warning: failed to close helper: %v\n", closeErr)
-		}
-	}()
-
-	// Initialize session
-	if sessionErr := agentClient.StartSession(ctx); sessionErr != nil {
-		return fmt.Errorf("failed to start session: %w", sessionErr)
 	}
 
 	// Execute command

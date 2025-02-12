@@ -110,9 +110,8 @@ func TestKubernetesExecutor(t *testing.T) {
 	require.NoError(t, err)
 
 	// Test agent creation
-	agentOpts := agent.AgentOptions{
+	agentOpts := agent.GooseOptions{
 		SessionID: "test-agent-1",
-		BaseURL:   "http://localhost:8080",
 		APIKey:    "test-key",
 	}
 

@@ -47,7 +47,7 @@ func (e *LocalExecutor) Initialize(ctx context.Context) error {
 }
 
 // CreateAgent implements Executor.CreateAgent
-func (e *LocalExecutor) CreateAgent(ctx context.Context, opts agent.AgentOptions) (agent.Agent, error) {
+func (e *LocalExecutor) CreateAgent(ctx context.Context, opts agent.GooseOptions) (agent.Agent, error) {
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
 
@@ -57,14 +57,9 @@ func (e *LocalExecutor) CreateAgent(ctx context.Context, opts agent.AgentOptions
 	}
 
 	// Create agent instance
-	newAgent, err := agent.NewAgent(opts)
+	newAgent, err := agent.NewGooseAgent(opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create agent: %w", err)
-	}
-
-	// Start agent session
-	if err := newAgent.StartSession(ctx); err != nil {
-		return nil, fmt.Errorf("failed to start agent session: %w", err)
 	}
 
 	// Store agent
