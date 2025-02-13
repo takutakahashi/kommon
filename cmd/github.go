@@ -39,6 +39,7 @@ func init() {
 	githubCmd.Flags().Int64("app-id", 0, "GitHub App ID")
 	githubCmd.Flags().String("private-key-file", "", "Path to GitHub App private key file")
 	githubCmd.Flags().String("webhook-secret", "", "GitHub webhook secret for request validation")
+	githubCmd.Flags().String("app-login", "", "GitHub App login name")
 
 	if err := viper.BindPFlag("github.port", githubCmd.Flags().Lookup("port")); err != nil {
 		cobra.CheckErr(err)
@@ -55,12 +56,16 @@ func init() {
 	if err := viper.BindPFlag("github.webhook_secret", githubCmd.Flags().Lookup("webhook-secret")); err != nil {
 		cobra.CheckErr(err)
 	}
+	if err := viper.BindPFlag("github.app_login", githubCmd.Flags().Lookup("app-login")); err != nil {
+		cobra.CheckErr(err)
+	}
 
 	viper.SetDefault("github.port", "8080")
 	viper.SetDefault("github.shutdown_timeout", 30*time.Second)
 	viper.SetDefault("github.app_id", 0)
 	viper.SetDefault("github.private_key_file", "")
 	viper.SetDefault("github.webhook_secret", "")
+	viper.SetDefault("github.app_login", "")
 }
 
 func init() {
@@ -90,6 +95,7 @@ type WebhookServer struct {
 	appID         int64
 	privateKey    *rsa.PrivateKey
 	webhookSecret string
+	appLogin      string // GitHub Appのログイン名を追加
 }
 
 type Config struct {
@@ -98,6 +104,7 @@ type Config struct {
 	AppID           int64
 	PrivateKeyFile  string
 	ShutdownTimeout time.Duration
+	AppLogin        string // GitHub Appのログイン名を追加
 }
 
 // generateJWT generates a JWT for GitHub App authentication
@@ -163,6 +170,7 @@ func NewWebhookServer(cfg Config) (*WebhookServer, error) {
 		appID:         cfg.AppID,
 		privateKey:    privateKey,
 		webhookSecret: cfg.WebhookSecret,
+		appLogin:      cfg.AppLogin,
 		server: &http.Server{
 			Addr:              ":" + cfg.Port,
 			Handler:           mux,
@@ -332,6 +340,7 @@ func runServe(cmd *cobra.Command, args []string) error {
 		AppID:           viper.GetInt64("github.app_id"),
 		PrivateKeyFile:  viper.GetString("github.private_key_file"),
 		ShutdownTimeout: viper.GetDuration("github.shutdown_timeout"),
+		AppLogin:        viper.GetString("github.app_login"),
 	}
 
 	// If values are not set, try to get them from root-level environment variables
@@ -343,6 +352,9 @@ func runServe(cmd *cobra.Command, args []string) error {
 	}
 	if cfg.PrivateKeyFile == "" {
 		cfg.PrivateKeyFile = viper.GetString("github_app_private_key")
+	}
+	if cfg.AppLogin == "" {
+		cfg.AppLogin = viper.GetString("github_app_login")
 	}
 
 	server, err := NewWebhookServer(cfg)
