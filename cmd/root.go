@@ -84,7 +84,7 @@ func init() {
 	if err := viper.BindEnv("api_key", "KOMMON_API_KEY"); err != nil {
 		fmt.Printf("Warning: failed to bind KOMMON_API_KEY environment variable: %v\n", err)
 	}
-	
+
 	// GitHub App related environment variables
 	if err := viper.BindEnv("github_app_id", "KOMMON_GITHUB_APP_ID"); err != nil {
 		fmt.Printf("Warning: failed to bind KOMMON_GITHUB_APP_ID environment variable: %v\n", err)

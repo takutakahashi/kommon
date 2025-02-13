@@ -323,6 +323,14 @@ func (ws *WebhookServer) handlePullRequestEvent(ctx context.Context, event *gith
 	}
 }
 
+func (ws *WebhookServer) kommonCommand(text string) bool {
+
+	// メンションの確認 (@{app-slug} の形式)
+	mentionText := "@" + ws.appSlug
+
+	return strings.Contains(text, "/kommon") || strings.Contains(text, mentionText)
+}
+
 func (ws *WebhookServer) handleIssueCommentEvent(ctx context.Context, event *github.IssueCommentEvent, installationID int64) {
 	client, err := ws.getInstallationClient(ctx, installationID)
 	if err != nil {
@@ -335,19 +343,17 @@ func (ws *WebhookServer) handleIssueCommentEvent(ctx context.Context, event *git
 		return
 	}
 
-	// メンションの確認 (@{app-slug} の形式)
-	mentionText := "@" + ws.appSlug
-	if !strings.Contains(comment.GetBody(), mentionText) {
+	if !ws.kommonCommand(comment.GetBody()) {
 		return
 	}
 
 	ws.log.WithFields(logrus.Fields{
-		"repo":        event.GetRepo().GetFullName(),
-		"issue":       event.GetIssue().GetNumber(),
-		"comment_id":  comment.GetID(),
-		"comment_by":  event.GetSender().GetLogin(),
-		"mentioned":   mentionText,
-		"comment":     comment.GetBody(),
+		"repo":       event.GetRepo().GetFullName(),
+		"issue":      event.GetIssue().GetNumber(),
+		"comment_id": comment.GetID(),
+		"comment_by": event.GetSender().GetLogin(),
+		"mentioned":  "@" + ws.appSlug,
+		"comment":    comment.GetBody(),
 	}).Info("Received mention in issue comment")
 
 	// メンションへの応答を作成
