@@ -305,12 +305,24 @@ func (ws *WebhookServer) handlePullRequestEvent(ctx context.Context, event *gith
 }
 
 func runServe(cmd *cobra.Command, args []string) error {
+	// First try to get values from github-specific flags
 	cfg := Config{
 		Port:            viper.GetString("github.port"),
 		WebhookSecret:   viper.GetString("github.webhook_secret"),
 		AppID:           viper.GetInt64("github.app_id"),
 		PrivateKeyFile:  viper.GetString("github.private_key_file"),
 		ShutdownTimeout: viper.GetDuration("github.shutdown_timeout"),
+	}
+
+	// If values are not set, try to get them from root-level environment variables
+	if cfg.WebhookSecret == "" {
+		cfg.WebhookSecret = viper.GetString("github_app_webhook_secret")
+	}
+	if cfg.AppID == 0 {
+		cfg.AppID = viper.GetInt64("github_app_id")
+	}
+	if cfg.PrivateKeyFile == "" {
+		cfg.PrivateKeyFile = viper.GetString("github_app_private_key")
 	}
 
 	server, err := NewWebhookServer(cfg)
