@@ -235,6 +235,9 @@ func (ws *WebhookServer) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	case *github.PullRequestEvent:
 		installationID = e.GetInstallation().GetID()
 		ws.handlePullRequestEvent(r.Context(), e, installationID)
+	case *github.IssuesEvent:
+		installationID = e.GetInstallation().GetID()
+		ws.handleIssuesEvent(r.Context(), e, installationID)
 	default:
 		ws.log.WithFields(logrus.Fields{
 			"event_type": github.WebHookType(r),
@@ -301,6 +304,23 @@ func (ws *WebhookServer) handlePullRequestEvent(ctx context.Context, event *gith
 		if err != nil {
 			ws.log.Errorf("Failed to create comment: %v", err)
 		}
+	}
+}
+
+func (ws *WebhookServer) handleIssuesEvent(ctx context.Context, event *github.IssuesEvent, installationID int64) {
+	client, err := ws.getInstallationClient(ctx, installationID)
+	if err != nil {
+		ws.log.Errorf("Failed to get installation client: %v", err)
+		return
+	}
+
+	handler := NewLabelHandler(client, ws.log)
+	if err := handler.HandleIssuesEvent(ctx, event); err != nil {
+		ws.log.WithFields(logrus.Fields{
+			"error": err,
+			"issue": event.GetIssue().GetNumber(),
+			"repo":  event.GetRepo().GetFullName(),
+		}).Error("Failed to handle issues event")
 	}
 }
 
