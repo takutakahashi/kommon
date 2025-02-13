@@ -171,6 +171,7 @@ func NewWebhookServer(cfg Config) (*WebhookServer, error) {
 			Handler:           nil, // 後で設定
 			ReadHeaderTimeout: 10 * time.Second,
 		},
+		agents: make(map[string]agent.Agent),
 	}
 
 	// GitHub App の情報を取得
@@ -271,7 +272,6 @@ func (ws *WebhookServer) handlePushEvent(ctx context.Context, event *github.Push
 		ws.log.Errorf("Failed to get installation client: %v", err)
 		return
 	}
-
 	ws.log.WithFields(logrus.Fields{
 		"repo":    event.GetRepo().GetFullName(),
 		"ref":     event.GetRef(),
@@ -340,12 +340,6 @@ func (ws *WebhookServer) handleIssueCommentEvent(ctx context.Context, event *git
 		return
 	}
 
-	installationToken, _, err := client.Apps.CreateInstallationToken(ctx, installationID, &github.InstallationTokenOptions{})
-	if err != nil {
-		ws.log.Errorf("Failed to get installation token: %v", err)
-		return
-	}
-
 	comment := event.GetComment()
 	if comment == nil {
 		return
@@ -364,7 +358,7 @@ func (ws *WebhookServer) handleIssueCommentEvent(ctx context.Context, event *git
 		"comment":    comment.GetBody(),
 	}).Info("Received mention in issue comment")
 
-	agent := ws.GetAgent(event.GetRepo().GetFullName(), event.GetIssue().GetNumber(), installationToken.GetToken())
+	agent := ws.GetAgent(event.GetRepo().GetFullName(), event.GetIssue().GetNumber(), "")
 	res, err := agent.Execute(ctx, comment.GetBody())
 	if err != nil {
 		ws.log.Errorf("Failed to execute prompt: %v", err)
