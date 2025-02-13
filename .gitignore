@@ -1,3 +1,4 @@
 .rtx.toml
 .ignore/
 .envrc
+tmp/
