@@ -1,4 +1,4 @@
-.PHONY: install_deps lint test integration-test build run docker-build vet fmt docker-build-goose docker-build-all
+.PHONY: install_deps lint test integration-test build run docker-build vet fmt docker-build-goose docker-build-all dev
 
 # Go modules and golangci-lint installation
 install_deps:
@@ -44,3 +44,7 @@ docker-build-goose:
 
 # Build all Docker images
 docker-build-all: docker-build docker-build-goose
+
+# Run development mode with hot-reload
+dev: install_deps
+	air
