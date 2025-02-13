@@ -39,6 +39,11 @@ func init() {
 	rootCmd.PersistentFlags().String("base-url", "", "Base URL for the AI service")
 	rootCmd.PersistentFlags().String("data-dir", getDefaultDataDir(), "Directory for storing data")
 
+	// GitHub App related flags
+	rootCmd.PersistentFlags().String("github-app-id", "", "GitHub App ID")
+	rootCmd.PersistentFlags().String("github-app-private-key", "", "Path to GitHub App private key file")
+	rootCmd.PersistentFlags().String("github-app-webhook-secret", "", "GitHub App webhook secret")
+
 	// Bind flags to viper with error checking
 	if err := viper.BindPFlag("agent", rootCmd.PersistentFlags().Lookup("agent")); err != nil {
 		fmt.Printf("Failed to bind agent flag: %v\n", err)
@@ -61,9 +66,34 @@ func init() {
 		os.Exit(1)
 	}
 
+	// Bind GitHub App related flags
+	if err := viper.BindPFlag("github_app_id", rootCmd.PersistentFlags().Lookup("github-app-id")); err != nil {
+		fmt.Printf("Failed to bind github_app_id flag: %v\n", err)
+		os.Exit(1)
+	}
+	if err := viper.BindPFlag("github_app_private_key", rootCmd.PersistentFlags().Lookup("github-app-private-key")); err != nil {
+		fmt.Printf("Failed to bind github_app_private_key flag: %v\n", err)
+		os.Exit(1)
+	}
+	if err := viper.BindPFlag("github_app_webhook_secret", rootCmd.PersistentFlags().Lookup("github-app-webhook-secret")); err != nil {
+		fmt.Printf("Failed to bind github_app_webhook_secret flag: %v\n", err)
+		os.Exit(1)
+	}
+
 	// Environment variables with error handling
 	if err := viper.BindEnv("api_key", "KOMMON_API_KEY"); err != nil {
 		fmt.Printf("Warning: failed to bind KOMMON_API_KEY environment variable: %v\n", err)
+	}
+	
+	// GitHub App related environment variables
+	if err := viper.BindEnv("github_app_id", "KOMMON_GITHUB_APP_ID"); err != nil {
+		fmt.Printf("Warning: failed to bind KOMMON_GITHUB_APP_ID environment variable: %v\n", err)
+	}
+	if err := viper.BindEnv("github_app_private_key", "KOMMON_GITHUB_APP_PRIVATE_KEY"); err != nil {
+		fmt.Printf("Warning: failed to bind KOMMON_GITHUB_APP_PRIVATE_KEY environment variable: %v\n", err)
+	}
+	if err := viper.BindEnv("github_app_webhook_secret", "KOMMON_GITHUB_APP_WEBHOOK_SECRET"); err != nil {
+		fmt.Printf("Warning: failed to bind KOMMON_GITHUB_APP_WEBHOOK_SECRET environment variable: %v\n", err)
 	}
 }
 
