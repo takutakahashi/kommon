@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -90,6 +91,7 @@ type WebhookServer struct {
 	appID         int64
 	privateKey    *rsa.PrivateKey
 	webhookSecret string
+	appSlug       string // GitHub App のスラグ名（@mention で使用される名前）
 }
 
 type Config struct {
@@ -157,7 +159,6 @@ func NewWebhookServer(cfg Config) (*WebhookServer, error) {
 		return nil, fmt.Errorf("failed to parse private key: %v", err)
 	}
 
-	mux := http.NewServeMux()
 	ws := &WebhookServer{
 		log:           log,
 		appID:         cfg.AppID,
@@ -165,12 +166,31 @@ func NewWebhookServer(cfg Config) (*WebhookServer, error) {
 		webhookSecret: cfg.WebhookSecret,
 		server: &http.Server{
 			Addr:              ":" + cfg.Port,
-			Handler:           mux,
+			Handler:           nil, // 後で設定
 			ReadHeaderTimeout: 10 * time.Second,
 		},
 	}
 
+	// GitHub App の情報を取得
+	jwt, err := ws.generateJWT()
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate JWT: %v", err)
+	}
+
+	ctx := context.Background()
+	client := github.NewTokenClient(ctx, jwt)
+	app, _, err := client.Apps.Get(ctx, "")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get app information: %v", err)
+	}
+	ws.appSlug = app.GetSlug()
+	log.Infof("GitHub App name (@%s) retrieved successfully", ws.appSlug)
+
+	// Create mux and set handlers
+	mux := http.NewServeMux()
 	mux.HandleFunc("/webhook", ws.handleWebhook)
+	ws.server.Handler = mux
+
 	return ws, nil
 }
 
@@ -203,12 +223,10 @@ func (ws *WebhookServer) Start() error {
 }
 
 func (ws *WebhookServer) handleWebhook(w http.ResponseWriter, r *http.Request) {
-	logrus.Info("hello")
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	logrus.Info("hello")
 
 	payload, err := github.ValidatePayload(r, []byte(ws.webhookSecret))
 	if err != nil {
@@ -216,7 +234,6 @@ func (ws *WebhookServer) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid payload", http.StatusBadRequest)
 		return
 	}
-	logrus.Info("hello")
 
 	event, err := github.ParseWebHook(github.WebHookType(r), payload)
 	if err != nil {
@@ -224,7 +241,6 @@ func (ws *WebhookServer) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error parsing webhook", http.StatusBadRequest)
 		return
 	}
-	logrus.Info("hello")
 
 	// Get installation ID from the event
 	var installationID int64
@@ -235,6 +251,9 @@ func (ws *WebhookServer) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	case *github.PullRequestEvent:
 		installationID = e.GetInstallation().GetID()
 		ws.handlePullRequestEvent(r.Context(), e, installationID)
+	case *github.IssueCommentEvent:
+		installationID = e.GetInstallation().GetID()
+		ws.handleIssueCommentEvent(r.Context(), e, installationID)
 	default:
 		ws.log.WithFields(logrus.Fields{
 			"event_type": github.WebHookType(r),
@@ -302,6 +321,55 @@ func (ws *WebhookServer) handlePullRequestEvent(ctx context.Context, event *gith
 			ws.log.Errorf("Failed to create comment: %v", err)
 		}
 	}
+}
+
+func (ws *WebhookServer) handleIssueCommentEvent(ctx context.Context, event *github.IssueCommentEvent, installationID int64) {
+	client, err := ws.getInstallationClient(ctx, installationID)
+	if err != nil {
+		ws.log.Errorf("Failed to get installation client: %v", err)
+		return
+	}
+
+	comment := event.GetComment()
+	if comment == nil {
+		return
+	}
+
+	// メンションの確認 (@{app-slug} の形式)
+	mentionText := "@" + ws.appSlug
+	if !strings.Contains(comment.GetBody(), mentionText) {
+		return
+	}
+
+	ws.log.WithFields(logrus.Fields{
+		"repo":        event.GetRepo().GetFullName(),
+		"issue":       event.GetIssue().GetNumber(),
+		"comment_id":  comment.GetID(),
+		"comment_by":  event.GetSender().GetLogin(),
+		"mentioned":   mentionText,
+		"comment":     comment.GetBody(),
+	}).Info("Received mention in issue comment")
+
+	// メンションへの応答を作成
+	response := fmt.Sprintf("👋 おはようございます @%s さん！\n\nメンションありがとうございます。何かお手伝いできることはありますか？", event.GetSender().GetLogin())
+
+	// 応答コメントを投稿
+	newComment := &github.IssueComment{
+		Body: &response,
+	}
+	_, _, err = client.Issues.CreateComment(
+		ctx,
+		event.GetRepo().GetOwner().GetLogin(),
+		event.GetRepo().GetName(),
+		event.GetIssue().GetNumber(),
+		newComment,
+	)
+	if err != nil {
+		ws.log.Errorf("Failed to create response comment: %v", err)
+		return
+	}
+
+	ws.log.Info("Successfully responded to mention")
 }
 
 func runServe(cmd *cobra.Command, args []string) error {
