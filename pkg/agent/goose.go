@@ -14,7 +14,7 @@ const (
 
 // GooseAgent implements the agent interface for Goose
 type GooseAgent struct {
-	opts GooseOptions
+	Opts GooseOptions
 }
 
 type GooseOptions struct {
@@ -39,21 +39,21 @@ func NewGooseAgent(opts GooseOptions) (Agent, error) {
 	}
 
 	return &GooseAgent{
-		opts: opts,
+		Opts: opts,
 	}, nil
 }
 
 // Execute sends a command to Goose
 func (a *GooseAgent) Execute(ctx context.Context, input string) (string, error) {
-	gooseArgs := []string{"run", "--name", a.opts.SessionID, "--text", input}
+	gooseArgs := []string{"run", "--name", a.Opts.SessionID, "--text", input}
 	err := exec.CommandContext(ctx, "goose", gooseArgs...).Run()
 	if err != nil {
 		return "", err
 	}
-	return "", nil
+	return "実行中です。結果をお待ちください...", nil
 }
 
 // GetSessionID returns the current session ID
 func (a *GooseAgent) GetSessionID() string {
-	return a.opts.SessionID
+	return a.Opts.SessionID
 }

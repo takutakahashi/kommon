@@ -19,6 +19,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/takutakahashi/kommon/pkg/agent"
 )
 
 var (
@@ -92,6 +93,7 @@ type WebhookServer struct {
 	privateKey    *rsa.PrivateKey
 	webhookSecret string
 	appSlug       string // GitHub App のスラグ名（@mention で使用される名前）
+	agents        map[string]agent.Agent
 }
 
 type Config struct {
@@ -169,6 +171,7 @@ func NewWebhookServer(cfg Config) (*WebhookServer, error) {
 			Handler:           nil, // 後で設定
 			ReadHeaderTimeout: 10 * time.Second,
 		},
+		agents: make(map[string]agent.Agent),
 	}
 
 	// GitHub App の情報を取得
@@ -269,7 +272,6 @@ func (ws *WebhookServer) handlePushEvent(ctx context.Context, event *github.Push
 		ws.log.Errorf("Failed to get installation client: %v", err)
 		return
 	}
-
 	ws.log.WithFields(logrus.Fields{
 		"repo":    event.GetRepo().GetFullName(),
 		"ref":     event.GetRef(),
@@ -356,13 +358,18 @@ func (ws *WebhookServer) handleIssueCommentEvent(ctx context.Context, event *git
 		"comment":    comment.GetBody(),
 	}).Info("Received mention in issue comment")
 
-	// メンションへの応答を作成
-	response := fmt.Sprintf("👋 おはようございます @%s さん！\n\nメンションありがとうございます。何かお手伝いできることはありますか？", event.GetSender().GetLogin())
-
-	// 応答コメントを投稿
-	newComment := &github.IssueComment{
-		Body: &response,
+	agent := ws.GetAgent(event.GetRepo().GetFullName(), event.GetIssue().GetNumber(), "")
+	res, err := agent.Execute(ctx, comment.GetBody())
+	if err != nil {
+		ws.log.Errorf("Failed to execute prompt: %v", err)
+		return
 	}
+	// コメントを作成
+	newComment := &github.IssueComment{
+		Body: github.String(res),
+	}
+
+	// コメントを投稿
 	_, _, err = client.Issues.CreateComment(
 		ctx,
 		event.GetRepo().GetOwner().GetLogin(),
@@ -371,11 +378,29 @@ func (ws *WebhookServer) handleIssueCommentEvent(ctx context.Context, event *git
 		newComment,
 	)
 	if err != nil {
-		ws.log.Errorf("Failed to create response comment: %v", err)
+		ws.log.Errorf("コメントの投稿に失敗しました: %v", err)
 		return
 	}
 
 	ws.log.Info("Successfully responded to mention")
+}
+
+func sessionID(repoFullName string, issueNumber int) string {
+	return fmt.Sprintf("%s-%d", repoFullName, issueNumber)
+}
+
+func (ws *WebhookServer) GetAgent(repoFullName string, issueNumber int, installationToken string) agent.Agent {
+	if _, ok := ws.agents[sessionID(repoFullName, issueNumber)]; !ok {
+		ws.agents[sessionID(repoFullName, issueNumber)] = &agent.GooseAgent{
+			Opts: agent.GooseOptions{
+				SessionID:   sessionID(repoFullName, issueNumber),
+				APIType:     agent.GooseAPITypeOpenRouter,
+				APIKey:      installationToken,
+				Instruction: "You are a helpful assistant that can answer questions and help with tasks.",
+			},
+		}
+	}
+	return ws.agents[sessionID(repoFullName, issueNumber)]
 }
 
 func runServe(cmd *cobra.Command, args []string) error {
