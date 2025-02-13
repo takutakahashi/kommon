@@ -40,11 +40,21 @@ func init() {
 	githubCmd.Flags().String("private-key-file", "", "Path to GitHub App private key file")
 	githubCmd.Flags().String("webhook-secret", "", "GitHub webhook secret for request validation")
 
-	viper.BindPFlag("github.port", githubCmd.Flags().Lookup("port"))
-	viper.BindPFlag("github.shutdown_timeout", githubCmd.Flags().Lookup("shutdown-timeout"))
-	viper.BindPFlag("github.app_id", githubCmd.Flags().Lookup("app-id"))
-	viper.BindPFlag("github.private_key_file", githubCmd.Flags().Lookup("private-key-file"))
-	viper.BindPFlag("github.webhook_secret", githubCmd.Flags().Lookup("webhook-secret"))
+	if err := viper.BindPFlag("github.port", githubCmd.Flags().Lookup("port")); err != nil {
+		cobra.CheckErr(err)
+	}
+	if err := viper.BindPFlag("github.shutdown_timeout", githubCmd.Flags().Lookup("shutdown-timeout")); err != nil {
+		cobra.CheckErr(err)
+	}
+	if err := viper.BindPFlag("github.app_id", githubCmd.Flags().Lookup("app-id")); err != nil {
+		cobra.CheckErr(err)
+	}
+	if err := viper.BindPFlag("github.private_key_file", githubCmd.Flags().Lookup("private-key-file")); err != nil {
+		cobra.CheckErr(err)
+	}
+	if err := viper.BindPFlag("github.webhook_secret", githubCmd.Flags().Lookup("webhook-secret")); err != nil {
+		cobra.CheckErr(err)
+	}
 
 	viper.SetDefault("github.port", "8080")
 	viper.SetDefault("github.shutdown_timeout", 30*time.Second)
@@ -154,8 +164,9 @@ func NewWebhookServer(cfg Config) (*WebhookServer, error) {
 		privateKey:    privateKey,
 		webhookSecret: cfg.WebhookSecret,
 		server: &http.Server{
-			Addr:    ":" + cfg.Port,
-			Handler: mux,
+			Addr:              ":" + cfg.Port,
+			Handler:           mux,
+			ReadHeaderTimeout: 10 * time.Second,
 		},
 	}
 
@@ -192,10 +203,12 @@ func (ws *WebhookServer) Start() error {
 }
 
 func (ws *WebhookServer) handleWebhook(w http.ResponseWriter, r *http.Request) {
+	logrus.Info("hello")
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	logrus.Info("hello")
 
 	payload, err := github.ValidatePayload(r, []byte(ws.webhookSecret))
 	if err != nil {
@@ -203,6 +216,7 @@ func (ws *WebhookServer) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid payload", http.StatusBadRequest)
 		return
 	}
+	logrus.Info("hello")
 
 	event, err := github.ParseWebHook(github.WebHookType(r), payload)
 	if err != nil {
@@ -210,6 +224,7 @@ func (ws *WebhookServer) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error parsing webhook", http.StatusBadRequest)
 		return
 	}
+	logrus.Info("hello")
 
 	// Get installation ID from the event
 	var installationID int64
