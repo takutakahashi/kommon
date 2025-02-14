@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: goose-agent
+  namespace: kommon
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: goose-agent
+  template:
+    metadata:
+      labels:
+        app: goose-agent
+    spec:
+      containers:
+      - name: goose-agent
+        image: ghcr.io/takutakahashi/kommon-goose-agent:latest
+        command:
+          - kommon
+          - github
+        env:
+        - name: OPENROUTER_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: goose-agent-secrets
+              key: OPENROUTER_API_KEY
+        - name: KOMMON_GITHUB_APP_ID
+          valueFrom:
+            secretKeyRef:
+              name: goose-agent-secrets
+              key: KOMMON_GITHUB_APP_ID
+        - name: KOMMON_GITHUB_APP_PRIVATE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: goose-agent-secrets
+              key: KOMMON_GITHUB_APP_PRIVATE_KEY
+        - name: KOMMON_GITHUB_APP_WEBHOOK_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: goose-agent-secrets
+              key: KOMMON_GITHUB_APP_WEBHOOK_SECRET
+        - name: KOMMON_AGENT_WORKDIR
+          valueFrom:
+            secretKeyRef:
+              name: goose-agent-secrets
+              key: KOMMON_AGENT_WORKDIR
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "256Mi"

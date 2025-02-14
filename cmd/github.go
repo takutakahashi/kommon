@@ -359,14 +359,14 @@ func (ws *WebhookServer) handleIssueCommentEvent(ctx context.Context, event *git
 	}).Info("Received mention in issue comment")
 
 	agent := ws.GetAgent(event.GetRepo().GetFullName(), event.GetIssue().GetNumber(), installationToken)
-	res, err := agent.Execute(ctx, comment.GetBody())
+	_, err = agent.Execute(ctx, comment.GetBody())
 	if err != nil {
 		ws.log.Errorf("Failed to execute prompt: %v", err)
 		return
 	}
 	// コメントを作成
 	newComment := &github.IssueComment{
-		Body: github.String(res),
+		Body: github.String("指示の実行が完了しました"),
 	}
 
 	// コメントを投稿
