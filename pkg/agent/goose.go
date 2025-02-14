@@ -84,23 +84,18 @@ func (a *GooseAgent) Execute(ctx context.Context, input string) (string, error) 
 		}
 	}()
 
-	sessionFile := fmt.Sprintf("%s/.config/goose/sessions/%s", os.Getenv("HOME"), a.Opts.SessionID)
-	resumeOption := "--resume"
-	if _, err := os.Stat(sessionFile); os.IsNotExist(err) {
-		resumeOption = ""
-	}
-
 	script := fmt.Sprintf(`#!/bin/bash
 gh auth login --with-token <<< "%s"
 gh auth setup-git
-SESSION=./tmp/%s
+SESSION_ID=%s
+SESSION_DIR=./tmp/$SESSION_ID
 REPO=%s
 INPUT="%s"
-ls $SESSION || (mkdir -p $SESSION; git clone $REPO $SESSION/repo)
-cd $SESSION/repo
-goose run --name $SESSION %s --text "$INPUT"
+ls $SESSION_DIR || (mkdir -p $SESSION_DIR; git clone $REPO $SESSION_DIR/repo)
+cd $SESSION_DIR/repo
+goose run --name $SESSION_ID -r --text "$INPUT" || goose run --name $SESSION_ID --text "$INPUT" 
 gh auth logout
-`, a.InstallationToken, a.Opts.SessionID, fmt.Sprintf("https://github.com/%s", a.Repo), input, resumeOption)
+`, a.InstallationToken, a.Opts.SessionID, fmt.Sprintf("https://github.com/%s", a.Repo), input)
 
 	f, scriptErr := os.CreateTemp("", "goose-script-*.sh")
 	if scriptErr != nil {
