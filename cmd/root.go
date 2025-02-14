@@ -38,6 +38,7 @@ func init() {
 	rootCmd.PersistentFlags().String("api-key", "", "API key for the AI service")
 	rootCmd.PersistentFlags().String("base-url", "", "Base URL for the AI service")
 	rootCmd.PersistentFlags().String("data-dir", getDefaultDataDir(), "Directory for storing data")
+	rootCmd.PersistentFlags().String("agent-work-dir", "", "Working directory for agent")
 
 	// GitHub App related flags
 	rootCmd.PersistentFlags().String("github-app-id", "", "GitHub App ID")
@@ -65,6 +66,10 @@ func init() {
 		fmt.Printf("Failed to bind data_dir flag: %v\n", err)
 		os.Exit(1)
 	}
+	if err := viper.BindPFlag("agent_work_dir", rootCmd.PersistentFlags().Lookup("agent-work-dir")); err != nil {
+		fmt.Printf("Failed to bind agent_work_dir flag: %v\n", err)
+		os.Exit(1)
+	}
 
 	// Bind GitHub App related flags
 	if err := viper.BindPFlag("github_app_id", rootCmd.PersistentFlags().Lookup("github-app-id")); err != nil {
@@ -83,6 +88,9 @@ func init() {
 	// Environment variables with error handling
 	if err := viper.BindEnv("api_key", "KOMMON_API_KEY"); err != nil {
 		fmt.Printf("Warning: failed to bind KOMMON_API_KEY environment variable: %v\n", err)
+	}
+	if err := viper.BindEnv("agent_work_dir", "KOMMON_AGENT_WORK_DIR"); err != nil {
+		fmt.Printf("Warning: failed to bind KOMMON_AGENT_WORK_DIR environment variable: %v\n", err)
 	}
 
 	// GitHub App related environment variables
