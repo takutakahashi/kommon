@@ -330,7 +330,7 @@ func (ws *WebhookServer) kommonCommand(text string) bool {
 	// メンションの確認 (@{app-slug} の形式)
 	mentionText := "@" + ws.appSlug
 
-	return strings.Contains(text, "/kommon") || strings.Contains(text, mentionText)
+	return strings.HasPrefix(text, "/kommon") || strings.HasPrefix(text, mentionText)
 }
 
 func (ws *WebhookServer) handleIssueCommentEvent(ctx context.Context, event *github.IssueCommentEvent, installationID int64) {

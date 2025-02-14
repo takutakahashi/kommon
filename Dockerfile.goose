@@ -40,6 +40,8 @@ ENV PATH="/root/.local/bin:${PATH}"
 # Create necessary directories for Goose
 RUN mkdir -p /root/.config/goose /root/.local/share/goose
 
+COPY assets/config.yaml /root/.config/goose/
+
 # Verify installation
 RUN goose --version
 

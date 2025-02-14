@@ -1,0 +1,11 @@
+extensions:
+  developer:
+    enabled: true
+    name: developer
+    type: builtin
+  memory:
+    enabled: true
+    name: memory
+    type: builtin
+GOOSE_MODEL: anthropic/claude-3.5-sonnet
+GOOSE_PROVIDER: openrouter
