@@ -118,10 +118,10 @@ func (ws *WebhookServer) generateJWT() (string, error) {
 }
 
 // getInstallationClient creates a new GitHub client for a specific installation
-func (ws *WebhookServer) getInstallationClient(ctx context.Context, installationID int64) (*github.Client, error) {
+func (ws *WebhookServer) getInstallationClientAndToken(ctx context.Context, installationID int64) (*github.Client, string, error) {
 	jwt, err := ws.generateJWT()
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate JWT: %v", err)
+		return nil, "", fmt.Errorf("failed to generate JWT: %v", err)
 	}
 
 	// Create a temporary client using the JWT
@@ -134,11 +134,11 @@ func (ws *WebhookServer) getInstallationClient(ctx context.Context, installation
 		&github.InstallationTokenOptions{},
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create installation token: %v", err)
+		return nil, "", fmt.Errorf("failed to create installation token: %v", err)
 	}
 
 	// Create a new client using the installation token
-	return github.NewTokenClient(ctx, token.GetToken()), nil
+	return github.NewTokenClient(ctx, token.GetToken()), token.GetToken(), nil
 }
 
 func NewWebhookServer(cfg Config) (*WebhookServer, error) {
@@ -267,7 +267,7 @@ func (ws *WebhookServer) handleWebhook(w http.ResponseWriter, r *http.Request) {
 }
 
 func (ws *WebhookServer) handlePushEvent(ctx context.Context, event *github.PushEvent, installationID int64) {
-	client, err := ws.getInstallationClient(ctx, installationID)
+	client, _, err := ws.getInstallationClientAndToken(ctx, installationID)
 	if err != nil {
 		ws.log.Errorf("Failed to get installation client: %v", err)
 		return
@@ -294,7 +294,7 @@ func (ws *WebhookServer) handlePushEvent(ctx context.Context, event *github.Push
 }
 
 func (ws *WebhookServer) handlePullRequestEvent(ctx context.Context, event *github.PullRequestEvent, installationID int64) {
-	client, err := ws.getInstallationClient(ctx, installationID)
+	client, _, err := ws.getInstallationClientAndToken(ctx, installationID)
 	if err != nil {
 		ws.log.Errorf("Failed to get installation client: %v", err)
 		return
@@ -334,7 +334,7 @@ func (ws *WebhookServer) kommonCommand(text string) bool {
 }
 
 func (ws *WebhookServer) handleIssueCommentEvent(ctx context.Context, event *github.IssueCommentEvent, installationID int64) {
-	client, err := ws.getInstallationClient(ctx, installationID)
+	client, installationToken, err := ws.getInstallationClientAndToken(ctx, installationID)
 	if err != nil {
 		ws.log.Errorf("Failed to get installation client: %v", err)
 		return
@@ -358,7 +358,7 @@ func (ws *WebhookServer) handleIssueCommentEvent(ctx context.Context, event *git
 		"comment":    comment.GetBody(),
 	}).Info("Received mention in issue comment")
 
-	agent := ws.GetAgent(event.GetRepo().GetFullName(), event.GetIssue().GetNumber(), "")
+	agent := ws.GetAgent(event.GetRepo().GetFullName(), event.GetIssue().GetNumber(), installationToken)
 	res, err := agent.Execute(ctx, comment.GetBody())
 	if err != nil {
 		ws.log.Errorf("Failed to execute prompt: %v", err)
@@ -398,7 +398,8 @@ func (ws *WebhookServer) GetAgent(repoFullName string, issueNumber int, installa
 				APIKey:      installationToken,
 				Instruction: "You are a helpful assistant that can answer questions and help with tasks.",
 			},
-			Repo: repoFullName,
+			Repo:              repoFullName,
+			InstallationToken: installationToken,
 		}
 	}
 	return ws.agents[sessionID(repoFullName, issueNumber)]

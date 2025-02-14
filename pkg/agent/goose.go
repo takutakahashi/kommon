@@ -16,8 +16,9 @@ const (
 
 // GooseAgent implements the agent interface for Goose
 type GooseAgent struct {
-	Opts GooseOptions
-	Repo string
+	Opts              GooseOptions
+	Repo              string
+	InstallationToken string
 }
 
 type GooseOptions struct {
@@ -84,13 +85,15 @@ func (a *GooseAgent) Execute(ctx context.Context, input string) (string, error) 
 	}()
 
 	script := fmt.Sprintf(`#!/bin/bash
-SESSION=%s
+gh auth login --with-token <<< "%s"
+gh auth setup-git
+SESSION=./tmp/%s
 REPO=%s
-INPUT=%s
+INPUT="%s"
 ls $SESSION || (mkdir -p $SESSION; git clone $REPO $SESSION/repo)
 cd $SESSION/repo
-goose run --text \'$INPUT\'
-`, a.Opts.SessionID, fmt.Sprintf("https://github.com/%s", a.Repo), input)
+goose run --text "$INPUT"
+`, a.InstallationToken, a.Opts.SessionID, fmt.Sprintf("https://github.com/%s", a.Repo), input)
 
 	f, scriptErr := os.CreateTemp("", "goose-script-*.sh")
 	if scriptErr != nil {
