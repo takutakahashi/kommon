@@ -94,6 +94,8 @@ REPO=%s
 INPUT="%s"
 ls $SESSION_DIR || (mkdir -p $SESSION_DIR; git clone $REPO $SESSION_DIR/repo)
 cd $SESSION_DIR/repo
+git config --global user.email "kommon@kommon.dev"
+git config --global user.name "kommon"
 goose run --name $SESSION_ID -r --text "$INPUT" || goose run --name $SESSION_ID --text "$INPUT" 
 gh auth logout
 `, a.InstallationToken, strings.ReplaceAll(a.Opts.SessionID, "/", "-"), fmt.Sprintf("https://github.com/%s", a.Repo), input)
