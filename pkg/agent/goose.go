@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
 )
 
@@ -43,14 +44,50 @@ func NewGooseAgent(opts GooseOptions) (Agent, error) {
 	}, nil
 }
 
+func setFile(text string) (*os.File, error) {
+	f, err := os.CreateTemp("", "goose-script-*.sh")
+	if err != nil {
+		return nil, err
+	}
+	defer os.Remove(f.Name())
+	_, err = f.WriteString(text)
+	if err != nil {
+		return nil, err
+	}
+	return f, nil
+}
+
 // Execute sends a command to Goose
 func (a *GooseAgent) Execute(ctx context.Context, input string) (string, error) {
-	gooseArgs := []string{"run", "--name", a.Opts.SessionID, "--text", input}
-	err := exec.CommandContext(ctx, "goose", gooseArgs...).Run()
+	instruction := `gh command can be used. all edit is under new branch checkout from main and PR it.`
+	i, err := setFile(instruction)
 	if err != nil {
 		return "", err
 	}
-	return "実行中です。結果をお待ちください...", nil
+	defer i.Close()
+	defer os.Remove(i.Name())
+	script := fmt.Sprintf(`
+	#!/bin/bash
+	goose run --name %s --text %s
+	`, a.Opts.SessionID, input)
+	f, err := os.CreateTemp("", "goose-script-*.sh")
+	if err != nil {
+		return "", err
+	}
+	defer os.Remove(f.Name())
+	_, err = f.WriteString(script)
+	if err != nil {
+		return "", err
+	}
+	err = f.Close()
+	if err != nil {
+		return "", err
+	}
+	out, err := exec.CommandContext(ctx, "bash", "-c", f.Name()).Output()
+	if err != nil {
+		return "", err
+	}
+	return string(out), nil
 }
 
 // GetSessionID returns the current session ID
