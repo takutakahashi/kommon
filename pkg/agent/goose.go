@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 type GooseAPIType string
@@ -95,7 +96,7 @@ ls $SESSION_DIR || (mkdir -p $SESSION_DIR; git clone $REPO $SESSION_DIR/repo)
 cd $SESSION_DIR/repo
 goose run --name $SESSION_ID -r --text "$INPUT" || goose run --name $SESSION_ID --text "$INPUT" 
 gh auth logout
-`, a.InstallationToken, a.Opts.SessionID, fmt.Sprintf("https://github.com/%s", a.Repo), input)
+`, a.InstallationToken, strings.ReplaceAll(a.Opts.SessionID, "/", "-"), fmt.Sprintf("https://github.com/%s", a.Repo), input)
 
 	f, scriptErr := os.CreateTemp("", "goose-script-*.sh")
 	if scriptErr != nil {
