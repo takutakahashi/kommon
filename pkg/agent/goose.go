@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 )
@@ -47,13 +48,21 @@ func NewGooseAgent(opts GooseOptions) (Agent, error) {
 func setFile(text string) (*os.File, error) {
 	f, err := os.CreateTemp("", "goose-script-*.sh")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create temp file: %w", err)
 	}
-	defer os.Remove(f.Name())
+	log.Printf("Created temporary file: %s", f.Name())
+	
 	_, err = f.WriteString(text)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to write to file: %w", err)
 	}
+	
+	// Make the script executable
+	if err := os.Chmod(f.Name(), 0755); err != nil {
+		return nil, fmt.Errorf("failed to chmod file: %w", err)
+	}
+	log.Printf("Set executable permissions on file: %s", f.Name())
+	
 	return f, nil
 }
 
@@ -62,31 +71,61 @@ func (a *GooseAgent) Execute(ctx context.Context, input string) (string, error) 
 	instruction := `gh command can be used. all edit is under new branch checkout from main and PR it.`
 	i, err := setFile(instruction)
 	if err != nil {
+		log.Printf("Error setting instruction file: %v", err)
 		return "", err
 	}
-	defer i.Close()
-	defer os.Remove(i.Name())
-	script := fmt.Sprintf(`
-	#!/bin/bash
-	goose run --name %s --text %s
-	`, a.Opts.SessionID, input)
+	defer func() {
+		i.Close()
+		if err := os.Remove(i.Name()); err != nil {
+			log.Printf("Failed to remove instruction file %s: %v", i.Name(), err)
+		}
+	}()
+
+	script := fmt.Sprintf(`#!/bin/bash
+goose run --text '%s'
+`, input)
+	
 	f, err := os.CreateTemp("", "goose-script-*.sh")
 	if err != nil {
-		return "", err
+		log.Printf("Error creating script file: %v", err)
+		return "", fmt.Errorf("failed to create script file: %w", err)
 	}
-	defer os.Remove(f.Name())
+	
+	log.Printf("Created script file: %s", f.Name())
+	log.Printf("Script contents:\n%s", script)
+	
 	_, err = f.WriteString(script)
 	if err != nil {
-		return "", err
+		log.Printf("Error writing to script file: %v", err)
+		return "", fmt.Errorf("failed to write script: %w", err)
 	}
-	err = f.Close()
+	
+	if err := f.Chmod(0755); err != nil {
+		log.Printf("Error setting script permissions: %v", err)
+		return "", fmt.Errorf("failed to set script permissions: %w", err)
+	}
+	
+	if err := f.Close(); err != nil {
+		log.Printf("Error closing script file: %v", err)
+		return "", fmt.Errorf("failed to close script file: %w", err)
+	}
+	
+	defer func() {
+		if err := os.Remove(f.Name()); err != nil {
+			log.Printf("Failed to remove script file %s: %v", f.Name(), err)
+		}
+	}()
+	
+	cmd := exec.CommandContext(ctx, "bash", f.Name())
+	log.Printf("Executing command: %v", cmd.String())
+	
+	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return "", err
+		log.Printf("Command execution error: %v", err)
+		log.Printf("Command output: %s", string(out))
+		return "", fmt.Errorf("command execution failed: %w", err)
 	}
-	out, err := exec.CommandContext(ctx, "bash", "-c", f.Name()).Output()
-	if err != nil {
-		return "", err
-	}
+	
 	return string(out), nil
 }
 
