@@ -398,6 +398,7 @@ func (ws *WebhookServer) GetAgent(repoFullName string, issueNumber int, installa
 				APIKey:      installationToken,
 				Instruction: "You are a helpful assistant that can answer questions and help with tasks.",
 			},
+			Repo: repoFullName,
 		}
 	}
 	return ws.agents[sessionID(repoFullName, issueNumber)]
