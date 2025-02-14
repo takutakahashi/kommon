@@ -99,6 +99,7 @@ INPUT="%s"
 ls $SESSION || (mkdir -p $SESSION; git clone $REPO $SESSION/repo)
 cd $SESSION/repo
 goose run --name $SESSION %s --text "$INPUT"
+gh auth logout
 `, a.InstallationToken, a.Opts.SessionID, fmt.Sprintf("https://github.com/%s", a.Repo), input, resumeOption)
 
 	f, scriptErr := os.CreateTemp("", "goose-script-*.sh")
