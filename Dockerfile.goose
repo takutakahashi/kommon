@@ -32,7 +32,7 @@ RUN curl -fsSL https://github.com/block/goose/releases/download/stable/download_
 ENV PATH="/root/.local/bin:${PATH}"
 
 # Create necessary directories for Goose
-RUN mkdir -p /root/.config/goose
+RUN mkdir -p /root/.config/goose /root/.local/share/goose
 
 # Verify installation
 RUN goose --version
