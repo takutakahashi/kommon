@@ -334,7 +334,7 @@ func (ws *WebhookServer) kommonCommand(text string) bool {
 }
 
 func (ws *WebhookServer) handleIssueCommentEvent(ctx context.Context, event *github.IssueCommentEvent, installationID int64) {
-	client, installationToken, err := ws.getInstallationClientAndToken(ctx, installationID)
+	client, _, err := ws.getInstallationClientAndToken(ctx, installationID)
 	if err != nil {
 		ws.log.Errorf("Failed to get installation client: %v", err)
 		return
@@ -358,15 +358,6 @@ func (ws *WebhookServer) handleIssueCommentEvent(ctx context.Context, event *git
 		"comment":    comment.GetBody(),
 	}).Info("Received mention in issue comment")
 
-	go func() {
-		agent := ws.GetAgent(event.GetRepo().GetFullName(), event.GetIssue().GetNumber(), installationToken)
-		_, err = agent.Execute(context.Background(), comment.GetBody())
-		if err != nil {
-			ws.log.Errorf("Failed to execute prompt: %v", err)
-			return
-		}
-
-	}()
 	// コメントを作成
 	newComment := &github.IssueComment{
 		Body: github.String("実行中です。少々お待ちください..."),
@@ -385,7 +376,53 @@ func (ws *WebhookServer) handleIssueCommentEvent(ctx context.Context, event *git
 		return
 	}
 
-	ws.log.Info("Successfully responded to mention")
+	// 非同期実行用の新しいコンテキストを作成
+	bgCtx := context.Background()
+
+	go func() {
+		// 非同期処理用の新しいクライアントを作成
+		asyncClient, asyncToken, err := ws.getInstallationClientAndToken(bgCtx, installationID)
+		if err != nil {
+			ws.log.Errorf("Failed to create async client: %v", err)
+			return
+		}
+
+		// エージェントを取得
+		agent := ws.GetAgent(event.GetRepo().GetFullName(), event.GetIssue().GetNumber(), asyncToken)
+
+		// コマンドを実行
+		output, err := agent.Execute(bgCtx, comment.GetBody())
+
+		// 結果に応じてコメントを作成
+		var resultComment *github.IssueComment
+		if err != nil {
+			ws.log.Errorf("Failed to execute prompt: %v", err)
+			resultComment = &github.IssueComment{
+				Body: github.String(fmt.Sprintf("コマンドの実行中にエラーが発生しました: %v", err)),
+			}
+		} else {
+			resultComment = &github.IssueComment{
+				Body: github.String(fmt.Sprintf("実行が完了しました:\n```\n%s\n```", output)),
+			}
+		}
+
+		// 結果をコメントとして投稿
+		_, _, commentErr := asyncClient.Issues.CreateComment(
+			bgCtx,
+			event.GetRepo().GetOwner().GetLogin(),
+			event.GetRepo().GetName(),
+			event.GetIssue().GetNumber(),
+			resultComment,
+		)
+		if commentErr != nil {
+			ws.log.Errorf("実行結果のコメント投稿に失敗しました: %v", commentErr)
+			return
+		}
+
+		ws.log.Info("Successfully executed command and posted results")
+	}()
+
+	ws.log.Info("Started async command execution")
 }
 
 func sessionID(repoFullName string, issueNumber int) string {
