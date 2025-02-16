@@ -358,15 +358,18 @@ func (ws *WebhookServer) handleIssueCommentEvent(ctx context.Context, event *git
 		"comment":    comment.GetBody(),
 	}).Info("Received mention in issue comment")
 
-	agent := ws.GetAgent(event.GetRepo().GetFullName(), event.GetIssue().GetNumber(), installationToken)
-	_, err = agent.Execute(ctx, comment.GetBody())
-	if err != nil {
-		ws.log.Errorf("Failed to execute prompt: %v", err)
-		return
-	}
+	go func() {
+		agent := ws.GetAgent(event.GetRepo().GetFullName(), event.GetIssue().GetNumber(), installationToken)
+		_, err = agent.Execute(context.Background(), comment.GetBody())
+		if err != nil {
+			ws.log.Errorf("Failed to execute prompt: %v", err)
+			return
+		}
+
+	}()
 	// コメントを作成
 	newComment := &github.IssueComment{
-		Body: github.String("指示の実行が完了しました"),
+		Body: github.String("実行中です。少々お待ちください..."),
 	}
 
 	// コメントを投稿
